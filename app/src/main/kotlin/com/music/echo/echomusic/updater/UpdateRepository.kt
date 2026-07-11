@@ -20,7 +20,7 @@ interface UpdateApiService {
 class UpdateRepository @Inject constructor() {
     private val api: UpdateApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://raw.githubusercontent.com/kituontop69-cell/MelodyX/main/")
+            .baseUrl("https://raw.githubusercontent.com/offcialkitu-ui/X/main/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(UpdateApiService::class.java)
