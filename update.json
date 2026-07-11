@@ -1,0 +1,22 @@
+{
+  "versionCode": 600,
+  "versionName": "6.0.0",
+  "releaseDate": "2026-07-08",
+  "apkSize": "65 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.0.0/MELODY_X.apk",
+  "forceUpdate": false,
+  "changelog": {
+    "features": [
+      "Initial MELODY X Release",
+      "Concentric Rings Branding",
+      "Instagram Story Sharing"
+    ],
+    "improvements": [
+      "Premium Flagship UI",
+      "AMOLED Dark Mode"
+    ],
+    "bugFixes": [
+      "Optimized background services"
+    ]
+  }
+}
