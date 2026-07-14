@@ -1,9 +1,9 @@
 {
-  "versionCode": 610,
-  "versionName": "6.1.0-OTA",
-  "releaseDate": "2026-07-12",
-  "apkSize": "106 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.0.0/MELODY_X_v6.0.0.apk",
+  "versionCode": 620,
+  "versionName": "6.2.0-OTA",
+  "releaseDate": "2026-07-14",
+  "apkSize": "108 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.1.0/MELODY_X_v6.1.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [

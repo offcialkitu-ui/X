@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MelodyX Music Player Widget – 4×2 / 4×1 / 2×2 responsive.
+  Premium Material 3 Expressive design:
+  - Blurred artwork backdrop with dynamic color scrim
+  - Large rounded album art as visual hero (16dp+ radius)
+  - Marquee track title + artist with WCAG AA contrast
+  - Thin seekable progress bar with elapsed/total time
+  - Controls: shuffle · prev · play/pause (filled tonal circle) · next · like
+  - Rich empty state: "Continue listening: <last played>" with artwork + play button
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:theme="@style/Theme.Widget.echomusic">
+
+    <!-- Dynamic backdrop: blurred album art + palette scrim, rounded to launcher radius -->
+    <ImageView
+        android:id="@+id/widget_backdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null" />
+
+    <!-- Main content area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <!-- Album art hero (large, rounded at runtime with system inner radius) -->
+        <ImageView
+            android:id="@+id/widget_album_art"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="center_vertical"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/album_art" />
+
+        <!-- Text + controls column -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
+
+            <!-- "Continue listening" eyebrow – visible only in idle/resume state -->
+            <TextView
+                android:id="@+id/widget_context_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.15"
+                android:textAllCaps="true"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone"
+                android:textColor="@color/widget_text_secondary" />
+
+            <!-- Track title – marquee for long titles -->
+            <TextView
+                android:id="@+id/widget_song_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/not_playing"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:requiresFadingEdge="horizontal"
+                android:fadingEdgeLength="32dp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textColor="@color/widget_text_primary" />
+
+            <!-- Artist name -->
+            <TextView
+                android:id="@+id/widget_artist_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text="@string/tap_to_play"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_secondary" />
+
+            <!-- Progress bar: thin 3dp rounded track + accent fill -->
+            <FrameLayout
+                android:id="@+id/widget_progress_container"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:layout_marginTop="8dp">
+
+                <ImageView
+                    android:id="@+id/widget_progress_track"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_progress_track"
+                    android:scaleType="fitXY"
+                    android:contentDescription="@null" />
+
+                <ImageView
+                    android:id="@+id/widget_progress_fill"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_progress_clip"
+                    android:scaleType="fitXY"
+                    android:contentDescription="@null" />
+            </FrameLayout>
+
+            <!-- Elapsed / total time labels -->
+            <RelativeLayout
+                android:id="@+id/widget_time_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp">
+
+                <TextView
+                    android:id="@+id/widget_time_elapsed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:textSize="9sp"
+                    android:text="@string/widget_time_zero"
+                    android:textColor="@color/widget_text_secondary" />
+
+                <TextView
+                    android:id="@+id/widget_time_total"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:textSize="9sp"
+                    android:text="@string/widget_time_zero"
+                    android:textColor="@color/widget_text_secondary" />
+            </RelativeLayout>
+
+            <!-- Controls row: shuffle · prev · play/pause (filled tonal circle) · next · like -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <!-- Shuffle -->
+                <FrameLayout
+                    android:id="@+id/widget_shuffle_button"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1">
+                    <ImageView
+                        android:id="@+id/widget_shuffle_icon"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/shuffle"
+                        android:contentDescription="@string/widget_shuffle" />
+                </FrameLayout>
+
+                <!-- Previous -->
+                <FrameLayout
+                    android:id="@+id/widget_prev_button"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1">
+                    <ImageView
+                        android:id="@+id/widget_prev_icon"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_widget_skip_previous"
+                        android:contentDescription="@string/previous" />
+                </FrameLayout>
+
+                <!-- Play/Pause – filled tonal circle (44dp) -->
+                <FrameLayout
+                    android:id="@+id/widget_play_pause_container"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp">
+                    <ImageView
+                        android:id="@+id/widget_play_bg"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/widget_circle_solid"
+                        android:contentDescription="@null" />
+                    <ImageView
+                        android:id="@+id/widget_play_pause"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_widget_play"
+                        android:contentDescription="@string/play_pause" />
+                </FrameLayout>
+
+                <!-- Next -->
+                <FrameLayout
+                    android:id="@+id/widget_next_button"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1">
+                    <ImageView
+                        android:id="@+id/widget_next_icon"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_widget_skip_next"
+                        android:contentDescription="@string/next" />
+                </FrameLayout>
+
+                <!-- Like -->
+                <FrameLayout
+                    android:id="@+id/widget_like_container"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1">
+                    <ImageButton
+                        android:id="@+id/widget_like_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:scaleType="fitCenter"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_widget_heart_outline_nav"
+                        android:contentDescription="@string/like" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
