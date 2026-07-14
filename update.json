@@ -1,19 +1,19 @@
 {
-  "versionCode": 620,
-  "versionName": "6.2.0-OTA",
+  "versionCode": 610,
+  "versionName": "6.1.0-STABLE",
   "releaseDate": "2026-07-14",
-  "apkSize": "108 MB",
+  "apkSize": "106 MB",
   "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.1.0/MELODY_X_v6.1.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
       "Official MELODY X Branding",
       "Fixed Instagram Story Share",
-      "Real-time Download Speed & ETA"
+      "Reactive Audio Ring (32-band)"
     ],
     "improvements": [
       "Premium Flagship UI",
-      "Optimized OTA System"
+      "Hardened OTA System"
     ],
     "bugFixes": [
       "Resolved background service issues"
