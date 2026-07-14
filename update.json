@@ -1,22 +1,27 @@
 {
-  "versionCode": 610,
-  "versionName": "6.1.0-STABLE",
-  "releaseDate": "2026-07-14",
-  "apkSize": "106 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.1.0/MELODY_X_v6.1.0.apk",
+  "versionCode": 620,
+  "versionName": "6.2.0",
+  "releaseDate": "2026-06-09",
+  "apkSize": "72 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.2.0/MELODY_X_v6.2.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
-      "Official MELODY X Branding",
-      "Fixed Instagram Story Share",
-      "Reactive Audio Ring (32-band)"
+      "Premium Instagram Story Share (3 Templates)",
+      "Mood-Aware Reactive Audio Ring (32-band spectrum)",
+      "Liquid Glass System-wide UI theme",
+      "Hardened OTA Updates with Atomic Swap",
+      "5-Second Real-time Update Polling"
     ],
     "improvements": [
-      "Premium Flagship UI",
-      "Hardened OTA System"
+      "HSL Live Color Grading",
+      "Performance optimized render pipeline",
+      "BPM-Synced Spring Animations"
     ],
     "bugFixes": [
-      "Resolved background service issues"
+      "Fixed Premium Widget data-sync crash",
+      "Resolved duplicate resource build errors",
+      "Cleaned up UI borders for flagship feel"
     ]
   }
 }

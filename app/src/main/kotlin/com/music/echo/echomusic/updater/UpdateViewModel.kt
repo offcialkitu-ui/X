@@ -43,7 +43,7 @@ class UpdateViewModel @Inject constructor(
     fun checkForUpdates(silent: Boolean = false) {
         viewModelScope.launch {
             if (!silent) _uiState.value = UpdateUiState.Checking
-            repository.fetchUpdateInfo().onSuccess { info ->
+            repository.fetchUpdateInfo(force = true).onSuccess { info ->
                 if (repository.isUpdateAvailable(info)) {
                     _uiState.value = UpdateUiState.Available(info)
                 } else {
