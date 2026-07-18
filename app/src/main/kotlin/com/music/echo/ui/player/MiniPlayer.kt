@@ -149,6 +149,10 @@ import iad1tya.echo.music.ui.theme.LocalPurpleTheme
 import iad1tya.echo.music.ui.component.Icon as MIcon
 import iad1tya.echo.music.ui.component.LiquidGlassBackground
 import iad1tya.echo.music.ui.component.getAdaptiveGlassTextColor
+import iad1tya.echo.music.ui.component.LocalGlassEffectConfig
+import iad1tya.echo.music.ui.component.GlassComponent
+import iad1tya.echo.music.ui.component.isGlassSupported
+import iad1tya.echo.music.ui.component.liquidGlass
 
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -440,7 +444,7 @@ private fun NewMiniPlayer(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(50.dp)
+                        .blur(8.dp)
                         .alpha(0.5f)
                 ) {
                     drawRect(
@@ -1073,7 +1077,7 @@ private fun MiniPlayerBackgroundLayer(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(30.dp)
+                        .blur(15.dp)
                 )
                 Box(
                     modifier = Modifier
@@ -1155,10 +1159,21 @@ private fun MiniPlayerBackgroundLayer(
             }
         }
         PlayerBackgroundStyle.LIQUID_GLASS -> {
-            LiquidGlassBackground(
-                dominantColor = gradientColors.firstOrNull() ?: DefaultThemeColor,
-                modifier = Modifier.fillMaxSize()
-            )
+            val glassConfig = LocalGlassEffectConfig.current
+            if (glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .liquidGlass(config = glassConfig)
+                )
+            } else if (gradientColors.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(gradientColors))
+                        .background(Color.Black.copy(alpha = 0.2f))
+                )
+            }
         }
         PlayerBackgroundStyle.LIVE_MESH -> {
             val infiniteTransition = rememberInfiniteTransition(label = "liveMesh")
@@ -1192,7 +1207,7 @@ private fun MiniPlayerBackgroundLayer(
                     colorFilter = ColorFilter.colorMatrix(matrix),
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(40.dp)
+                        .blur(15.dp)
                         .graphicsLayer { rotationZ = rotation.value }
                 )
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))

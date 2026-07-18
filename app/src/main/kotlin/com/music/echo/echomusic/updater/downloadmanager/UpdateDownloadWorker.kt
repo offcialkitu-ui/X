@@ -39,7 +39,9 @@ class UpdateDownloadWorker(private val context: Context, workerParams: WorkerPar
                 ForegroundInfo(DownloadNotificationManager.NOTIFICATION_ID, startingNotification)
             }
             setForeground(foregroundInfo)
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.e("UpdateDownloadWorker", "Failed to set foreground info", e)
+        }
 
         try {
             var currentUrl = apkUrl

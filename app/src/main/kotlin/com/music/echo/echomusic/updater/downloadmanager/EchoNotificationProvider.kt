@@ -176,8 +176,12 @@ class EchoNotificationProvider(
                     method.invoke(builder, promoted)
                     success = true
                     break
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    // Method might not exist on this SDK version
+                }
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

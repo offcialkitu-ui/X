@@ -112,11 +112,6 @@ fun FloatingNavigationToolbar(
     
     val toolbarModifier = modifier
         .fillMaxWidth()
-        .then(
-            if (liquidGlassEnabled && glassNavBarEnabled) {
-                Modifier.blur(glassBlurRadius.dp)
-            } else Modifier
-        )
 
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
         toolbarContainerColor = toolbarContainerColor,

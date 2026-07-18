@@ -499,7 +499,7 @@ fun AppearanceSettings(
                         isHighlighted = (highlightKey == "Party Mode"),
                         icon = painterResource(R.drawable.palette),
                         title = { PartyModeTitle() },
-                        description = { Text("Enable dark mode to enjoy party mode") },
+                        description = { Text(stringResource(R.string.enable_dark_mode_party_mode)) },
                         trailingContent = {
                             Switch(
                                 checked = partyMode,
@@ -512,7 +512,7 @@ fun AppearanceSettings(
                                         onPurpleThemeChange(false)
                                         iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityParty")
                                         coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("Party mode enabled!")
+                                            snackbarHostState.showSnackbar(context.getString(R.string.party_mode_enabled_snack))
                                         }
                                     } else {
                                         iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
@@ -530,7 +530,7 @@ fun AppearanceSettings(
                                 onPurpleThemeChange(false)
                                 iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityParty")
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Party mode enabled!")
+                                    snackbarHostState.showSnackbar(context.getString(R.string.party_mode_enabled_snack))
                                 }
                             } else {
                                 iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
@@ -542,8 +542,8 @@ fun AppearanceSettings(
                     Material3SettingsItem(
                         isHighlighted = (highlightKey == "Glassmorphism"),
                         icon = painterResource(R.drawable.palette),
-                        title = { Text("Glassmorphism Edition") },
-                        description = { Text("Semi-transparent frosted glass UI") },
+                        title = { Text(stringResource(R.string.glassmorphism_edition)) },
+                        description = { Text(stringResource(R.string.glassmorphism_edition_desc)) },
                         trailingContent = {
                             Switch(
                                 checked = glassmorphismMode,
@@ -576,8 +576,8 @@ fun AppearanceSettings(
                     Material3SettingsItem(
                         isHighlighted = (highlightKey == "Solar Dynamic"),
                         icon = painterResource(R.drawable.palette),
-                        title = { Text("Solar Dynamic Mode") },
-                        description = { Text("Theme follows the position of the sun") },
+                        title = { Text(stringResource(R.string.solar_dynamic_mode)) },
+                        description = { Text(stringResource(R.string.solar_dynamic_mode_desc)) },
                         trailingContent = {
                             Switch(
                                 checked = solarDynamicMode,
@@ -610,8 +610,8 @@ fun AppearanceSettings(
                     Material3SettingsItem(
                         isHighlighted = (highlightKey == "Battery Pro"),
                         icon = painterResource(R.drawable.speed),
-                        title = { Text("Battery Pro Mode") },
-                        description = { Text("Maximum AMOLED optimization for battery") },
+                        title = { Text(stringResource(R.string.battery_pro_mode)) },
+                        description = { Text(stringResource(R.string.battery_pro_mode_desc)) },
                         trailingContent = {
                             Switch(
                                 checked = batteryProMode,
@@ -644,8 +644,8 @@ fun AppearanceSettings(
                     Material3SettingsItem(
                         isHighlighted = (highlightKey == "Purple Theme"),
                         icon = painterResource(R.drawable.palette),
-                        title = { Text("Purple Theme") },
-                        description = { Text("Apply a premium neon purple AMOLED theme") },
+                        title = { Text(stringResource(R.string.purple_theme)) },
+                        description = { Text(stringResource(R.string.purple_theme_desc)) },
                         trailingContent = {
                             Switch(
                                 checked = purpleTheme,
@@ -683,8 +683,8 @@ fun AppearanceSettings(
                     Material3SettingsItem(
                         isHighlighted = (highlightKey == "Liquid Glass"),
                         icon = painterResource(R.drawable.palette),
-                        title = { Text("Liquid Glass (Beta)") },
-                        description = { Text("Premium dynamic blur & glass effects") },
+                        title = { Text(stringResource(R.string.liquid_glass_beta)) },
+                        description = { Text(stringResource(R.string.liquid_glass_desc)) },
                         onClick = { navController.navigate("settings/appearance/liquid_glass") }
                     )
                 )

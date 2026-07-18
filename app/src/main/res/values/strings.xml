@@ -488,6 +488,21 @@
     <string name="listenbrainz_scrobbling_description">Automatically submit your listened tracks to ListenBrainz</string>
     <string name="export_directory_unavailable">Unable to access an export directory on this device. Please set one manually.</string>
     <string name="set_listenbrainz_token">Set ListenBrainz Token</string>
+    <string name="color_picker_hex">Hex Color</string>
+
+    <!-- Appearance Settings Custom -->
+    <string name="enable_dark_mode_party_mode">Enable dark mode to enjoy party mode</string>
+    <string name="party_mode_enabled_snack">Party mode enabled!</string>
+    <string name="glassmorphism_edition">Glassmorphism Edition</string>
+    <string name="glassmorphism_edition_desc">Semi-transparent frosted glass UI</string>
+    <string name="solar_dynamic_mode">Solar Dynamic Mode</string>
+    <string name="solar_dynamic_mode_desc">Theme follows the position of the sun</string>
+    <string name="battery_pro_mode">Battery Pro Mode</string>
+    <string name="battery_pro_mode_desc">Maximum AMOLED optimization for battery</string>
+    <string name="purple_theme">Purple Theme</string>
+    <string name="purple_theme_desc">Apply a premium neon purple AMOLED theme</string>
+    <string name="liquid_glass_beta">Liquid Glass (Beta)</string>
+    <string name="liquid_glass_desc">Premium dynamic blur &amp; glass effects</string>
 
     <!-- Widget -->
     <string name="widget_time_zero">0:00</string>

@@ -1,20 +1,23 @@
 {
-  "versionCode": 630,
-  "versionName": "6.3.0",
-  "releaseDate": "2026-07-15",
+  "versionCode": 650,
+  "versionName": "6.5.0",
+  "releaseDate": "2026-07-18",
   "apkSize": "108 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.3.0/MELODY_X_v6.3.0.apk",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.5.0/MELODY_X_v6.5.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
-      "New Minimalist Settings Layout",
-      "Optimized Audiophile X-Engine controls"
+      "Updated Privacy Policy & Terms of Service URLs",
+      "Explicit Album Badges: Now correctly identifies and displays explicit content",
+      "New Localized Appearance Modes: Glassmorphism, Solar Dynamic, and Battery Pro"
     ],
     "improvements": [
-      "Removed donation prompts and clutter",
-      "Fixed UI spacing in Player Settings"
+      "Butter-Smooth UI: Massive performance optimizations for blurs and backdrop rendering",
+      "Optimized MiniPlayer: Reduced GPU load for mesh and party modes",
+      "Code Consolidation: Cleaned up duplicate providers and redundant logic"
     ],
     "bugFixes": [
+      "Fixed compilation typo in lyrics rendering",
       "Resolved background padding issues on large screens"
     ]
   }

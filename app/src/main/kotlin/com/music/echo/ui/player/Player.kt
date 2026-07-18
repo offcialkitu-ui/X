@@ -926,7 +926,7 @@ fun BottomSheetPlayer(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .blur(if (useDarkTheme) 150.dp else 100.dp)
+                                            .blur(20.dp)
                                     )
                                     Box(
                                         modifier = Modifier
@@ -1156,7 +1156,7 @@ fun BottomSheetPlayer(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .blur(150.dp)
+                                            .blur(20.dp)
                                     )
 
                                     
@@ -1295,7 +1295,7 @@ fun BottomSheetPlayer(
                                         colorFilter = colorFilter,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .blur(100.dp)
+                                            .blur(20.dp)
                                             .graphicsLayer { rotationZ = anchorRotation }
                                     )
 
@@ -1312,7 +1312,7 @@ fun BottomSheetPlayer(
                                         alignment = Alignment.TopStart,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .blur(120.dp)
+                                            .blur(20.dp)
                                             .graphicsLayer { 
                                                 rotationZ = fastRotation
                                                 alpha = 0.6f
@@ -1332,7 +1332,7 @@ fun BottomSheetPlayer(
                                         alignment = Alignment.BottomEnd,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .blur(120.dp)
+                                            .blur(20.dp)
                                             .graphicsLayer { 
                                                 rotationZ = slowRotation
                                                 alpha = 0.5f

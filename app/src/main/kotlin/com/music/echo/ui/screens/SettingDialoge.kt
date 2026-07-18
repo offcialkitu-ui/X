@@ -230,14 +230,14 @@ fun SettingDialoge(
                             text = "Privacy Policy",
                             style = MaterialTheme.typography.bodySmall,
                             color = onSecondaryColor,
-                            modifier = Modifier.clickable { uriHandler.openUri("https://malodyx.vercel.app/") }.padding(4.dp)
+                            modifier = Modifier.clickable { uriHandler.openUri("https://www.melody-rosy.vercel.app") }.padding(4.dp)
                         )
                         Text(text = " • ", color = onSecondaryColor, style = MaterialTheme.typography.bodySmall)
                         Text(
                             text = "Terms of Service",
                             style = MaterialTheme.typography.bodySmall,
                             color = onSecondaryColor,
-                            modifier = Modifier.clickable { uriHandler.openUri("https://malodyx.vercel.app/") }.padding(4.dp)
+                            modifier = Modifier.clickable { uriHandler.openUri("https://www.melody-rosy.vercel.app") }.padding(4.dp)
                         )
                     }
                 }

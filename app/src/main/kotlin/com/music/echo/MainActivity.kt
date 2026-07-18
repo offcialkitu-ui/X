@@ -143,39 +143,12 @@ import coil3.toBitmap
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
-import iad1tya.echo.music.constants.AppBarHeight
-import iad1tya.echo.music.constants.AppLanguageKey
-import iad1tya.echo.music.constants.DarkModeKey
-import iad1tya.echo.music.constants.DefaultOpenTabKey
-import iad1tya.echo.music.constants.DisableScreenshotKey
-import iad1tya.echo.music.constants.DynamicThemeKey
-import iad1tya.echo.music.constants.FloatingNavBarKey
-import iad1tya.echo.music.constants.SlimNavBarKey
-import iad1tya.echo.music.ui.component.AppNavigationBar
-import iad1tya.echo.music.constants.EnableHighRefreshRateKey
-import iad1tya.echo.music.constants.FloatingToolbarBottomPadding
-import iad1tya.echo.music.constants.FloatingToolbarHorizontalPadding
-import iad1tya.echo.music.constants.ListenTogetherInTopBarKey
-import iad1tya.echo.music.constants.ListenTogetherUsernameKey
-import iad1tya.echo.music.constants.MiniPlayerBottomSpacing
-import iad1tya.echo.music.constants.MiniPlayerHeight
-import iad1tya.echo.music.constants.NavigationBarAnimationSpec
-import iad1tya.echo.music.constants.NavigationBarHeight
-import iad1tya.echo.music.echomusic.updater.checkForUpdate
-import iad1tya.echo.music.echomusic.updater.getAutoUpdateCheckSetting
-import iad1tya.echo.music.echomusic.updater.isNewerVersion
-import iad1tya.echo.music.echomusic.updater.saveUpdateAvailableState
-import iad1tya.echo.music.echomusic.updater.getUpdateNotificationsSetting
+import iad1tya.echo.music.constants.*
+import iad1tya.echo.music.echomusic.updater.*
 import iad1tya.echo.music.echomusic.UpdateNotificationHelper
 import android.util.Log
 import androidx.compose.ui.platform.LocalContext
-import iad1tya.echo.music.constants.PauseListenHistoryKey
-import iad1tya.echo.music.constants.PauseSearchHistoryKey
-import iad1tya.echo.music.constants.PureBlackKey
-import iad1tya.echo.music.constants.SYSTEM_DEFAULT
-import iad1tya.echo.music.constants.SelectedThemeColorKey
-import iad1tya.echo.music.constants.StopMusicOnTaskClearKey
-import iad1tya.echo.music.constants.UseNewMiniPlayerDesignKey
+import iad1tya.echo.music.ui.component.AppNavigationBar
 import iad1tya.echo.music.db.MusicDatabase
 import iad1tya.echo.music.db.entities.SearchHistory
 import iad1tya.echo.music.extensions.toEnum
@@ -187,13 +160,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import iad1tya.echo.music.playback.PlayerConnection
 import iad1tya.echo.music.playback.queues.YouTubeQueue
-import iad1tya.echo.music.ui.component.AppNavigationRail
-import iad1tya.echo.music.ui.component.BottomSheetMenu
-import iad1tya.echo.music.ui.component.BottomSheetPage
-import iad1tya.echo.music.ui.component.FloatingNavigationToolbar
-import iad1tya.echo.music.ui.component.LocalBottomSheetPageState
-import iad1tya.echo.music.ui.component.LocalMenuState
-import iad1tya.echo.music.ui.component.rememberBottomSheetState
+import iad1tya.echo.music.ui.component.*
+import iad1tya.echo.music.ui.component.backdrop.backdrops.rememberLayerBackdrop
+import iad1tya.echo.music.ui.component.backdrop.backdrops.layerBackdrop
+import iad1tya.echo.music.ui.component.floatingtabbar.rememberFloatingTabBarScrollConnection
 import iad1tya.echo.music.ui.component.shimmer.getShimmerTheme
 import iad1tya.echo.music.ui.menu.YouTubeSongMenu
 import iad1tya.echo.music.ui.player.BottomSheetPlayer
@@ -684,6 +654,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
+                val floatingNavBarScrollConnection = rememberFloatingTabBarScrollConnection()
                 val defaultOpenTab = remember {
                     dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
                 }
@@ -961,7 +932,49 @@ class MainActivity : ComponentActivity() {
                     !(pauseListenHistory && eventCount == 0)
                 }
 
+                val (liquidGlassGlobalEnabled) = rememberPreference(LiquidGlassEnabledKey, defaultValue = false)
+                val (liquidGlassVibrancy) = rememberPreference(LiquidGlassVibrancyKey, defaultValue = 1f)
+                val (liquidGlassBlurRadius) = rememberPreference(LiquidGlassBlurRadiusKey, defaultValue = 8f)
+                val (liquidGlassLensHeight) = rememberPreference(LiquidGlassRefractionHeightKey, defaultValue = 0.5f)
+                val (liquidGlassLensAmount) = rememberPreference(LiquidGlassRefractionAmountKey, defaultValue = 0.5f)
+                val (liquidGlassChromaticAberration) = rememberPreference(LiquidGlassChromaticAberrationKey, defaultValue = true)
+                val (liquidGlassDepthEffect) = rememberPreference(LiquidGlassDepthEffectKey, defaultValue = true)
+                val (liquidGlassSurfaceTintColorInt) = rememberPreference(LiquidGlassSurfaceTintKey, defaultValue = 0)
+                val (liquidGlassSurfaceOpacity) = rememberPreference(LiquidGlassSurfaceOpacityKey, defaultValue = 0.4f)
+                val (liquidGlassTextColorInt) = rememberPreference(LiquidGlassTextColorKey, defaultValue = -1)
+                val (liquidGlassPlayerEnabled) = rememberPreference(LiquidGlassPlayerEnabledKey, defaultValue = true)
+                val (liquidGlassMiniPlayerEnabled) = rememberPreference(LiquidGlassMiniPlayerEnabledKey, defaultValue = true)
+                val (liquidGlassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+
+                val glassEffectConfig = remember(
+                    liquidGlassGlobalEnabled, floatingNavBar, liquidGlassVibrancy, liquidGlassBlurRadius,
+                    liquidGlassLensHeight, liquidGlassLensAmount, liquidGlassChromaticAberration,
+                    liquidGlassDepthEffect, liquidGlassSurfaceTintColorInt,
+                    liquidGlassSurfaceOpacity, liquidGlassTextColorInt, liquidGlassPlayerEnabled,
+                    liquidGlassMiniPlayerEnabled, liquidGlassNavBarEnabled,
+                ) {
+                    GlassEffectConfig(
+                        globalEnabled = liquidGlassGlobalEnabled && floatingNavBar,
+                        vibrancy = liquidGlassVibrancy,
+                        blurRadius = liquidGlassBlurRadius,
+                        lensHeight = liquidGlassLensHeight,
+                        lensAmount = liquidGlassLensAmount,
+                        chromaticAberration = liquidGlassChromaticAberration,
+                        depthEffect = liquidGlassDepthEffect,
+                        surfaceTintColor = if (liquidGlassSurfaceTintColorInt == 0) Color.Unspecified else Color(liquidGlassSurfaceTintColorInt),
+                        surfaceOpacity = liquidGlassSurfaceOpacity,
+                        textColor = if (liquidGlassTextColorInt == -1) Color.Unspecified else Color(liquidGlassTextColorInt),
+                        playerEnabled = liquidGlassPlayerEnabled,
+                        miniPlayerEnabled = liquidGlassMiniPlayerEnabled,
+                        navBarEnabled = liquidGlassNavBarEnabled,
+                    )
+                }
+
                 val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+                val appBackdrop = rememberLayerBackdrop {
+                    drawRect(baseBg)
+                    drawContent()
+                }
 
                 val ringtoneViewModel: RingtoneViewModel = viewModel()
                 val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
@@ -976,6 +989,8 @@ class MainActivity : ComponentActivity() {
                     LocalShimmerTheme provides getShimmerTheme(),
                     LocalSyncUtils provides syncUtils,
                     LocalListenTogetherManager provides listenTogetherManager,
+                    LocalGlassEffectConfig provides glassEffectConfig,
+                    LocalAppBackdrop provides appBackdrop,
                 ) {
 
                     Scaffold(
@@ -1304,7 +1319,9 @@ class MainActivity : ComponentActivity() {
                                         else
                                             slideOutHorizontally { it / 8 } + fadeOut(tween(200))
                                     },
-                                    modifier = Modifier.nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                                    modifier = Modifier
+                                        .layerBackdrop(appBackdrop)
+                                        .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
                                 ) {
                                     navigationBuilder(
                                         navController = navController,

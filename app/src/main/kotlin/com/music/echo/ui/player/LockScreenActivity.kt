@@ -254,11 +254,15 @@ class LockScreenActivity : ComponentActivity() {
                     )
             ) {
                 AsyncImage(
-                    model = metadata?.thumbnailUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(metadata?.thumbnailUrl)
+                        .size(100, 100)
+                        .allowHardware(false)
+                        .build(),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(100.dp)
+                        .blur(20.dp)
                         .alpha(0.45f),
                     contentScale = ContentScale.Crop
                 )

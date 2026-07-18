@@ -27,6 +27,8 @@ data class MusicDetailHeaderRenderer(
     val description: Runs?,
     val thumbnail: ThumbnailRenderer,
     val menu: Menu,
+    val subtitleBadges: List<Badges>? = null,
+    val badges: List<Badges>? = null,
 )
 
 @Serializable
