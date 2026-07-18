@@ -1398,7 +1398,7 @@ fun Lyrics(
                                     withStyle(style = SpanStyle(color = wordColor, fontWeight = wordWeight, shadow = wordShadow)) {
                                         append(word.text)
                                     }
-                                    if (wordIndex < (item.words.size ?: 0) - 1) append(" ")
+                                    if (wordIndex < (item.words.size s?: 0) - 1) append(" ")
                                 }
                             }
                             Text(
