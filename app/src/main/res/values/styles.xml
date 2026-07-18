@@ -1,0 +1,96 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.echomusic" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenBackground">#000000</item>
+        <item name="postSplashScreenTheme">@style/Theme.echomusic.Main</item>
+    </style>
+
+    <style name="Theme.echomusic.Main" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowMinWidthMinor">100%</item>
+        <item name="android:windowMinWidthMajor">100%</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">#ffffff</item>
+        <item name="android:enforceNavigationBarContrast" tools:ignore="NewApi">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.echomusic.LockScreen" parent="Theme.echomusic">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
+
+    <!-- Widget Theme with Material 3 colors fallback for API < 31 -->
+    <style name="Theme.Widget.echomusic" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:colorBackground">#E6E1E5</item>
+    </style>
+
+    <!-- Transparent theme for Music Recognizer Tile Service -->
+    <style name="Theme.Metrolist.Transparent" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- ═══ MelodyX Premium Playlist Widget Card Styles ═══ -->
+
+    <style name="MelodyXPlaylistWidgetCard">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center_horizontal</item>
+    </style>
+
+    <style name="MelodyXPlaylistWidgetArtworkFrame">
+        <item name="android:layout_width">56dp</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_gravity">center_horizontal</item>
+    </style>
+
+    <style name="MelodyXPlaylistWidgetArtwork">
+        <item name="android:layout_width">56dp</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:scaleType">centerCrop</item>
+    </style>
+
+    <style name="MelodyXPlaylistWidgetCardPlayButton">
+        <item name="android:layout_width">22dp</item>
+        <item name="android:layout_height">22dp</item>
+        <item name="android:layout_gravity">bottom|end</item>
+        <item name="android:background">@drawable/widget_circle_solid</item>
+    </style>
+
+    <style name="MelodyXPlaylistWidgetCardPlayIcon">
+        <item name="android:layout_width">13dp</item>
+        <item name="android:layout_height">13dp</item>
+        <item name="android:layout_gravity">center</item>
+    </style>
+
+    <style name="MelodyXPlaylistWidgetCardTitle">
+        <item name="android:layout_width">60dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">marquee</item>
+        <item name="android:marqueeRepeatLimit">marquee_forever</item>
+        <item name="android:gravity">center_horizontal</item>
+    </style>
+
+    <!-- Legacy compat aliases so existing code referencing Metrolist* works -->
+    <style name="MetrolistPlaylistWidgetCard" parent="MelodyXPlaylistWidgetCard" />
+    <style name="MetrolistPlaylistWidgetArtworkFrame" parent="MelodyXPlaylistWidgetArtworkFrame" />
+    <style name="MetrolistPlaylistWidgetArtwork" parent="MelodyXPlaylistWidgetArtwork" />
+    <style name="MetrolistPlaylistWidgetCardPlayButton" parent="MelodyXPlaylistWidgetCardPlayButton" />
+    <style name="MetrolistPlaylistWidgetCardPlayIcon" parent="MelodyXPlaylistWidgetCardPlayIcon" />
+    <style name="MetrolistPlaylistWidgetCardTitle" parent="MelodyXPlaylistWidgetCardTitle" />
+</resources>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MelodyX Music Recognizer Widget – Tiny (1×1).
+  Only the animated mic circle with pulsing ring.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_recognizer_tiny_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:theme="@style/Theme.Widget.echomusic">
+
+    <!-- Dynamic backdrop -->
+    <ImageView
+        android:id="@+id/widget_backdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null" />
+
+    <!-- Pulse ring (behind the button) -->
+    <ImageView
+        android:id="@+id/widget_recognizer_tiny_pulse"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:src="@drawable/widget_mic_pulse_idle"
+        android:contentDescription="@null" />
+
+    <!-- Mic circle button (centred, with dynamic color background) -->
+    <FrameLayout
+        android:id="@+id/widget_recognizer_tiny_mic_container"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:background="@drawable/widget_mic_button_bg">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_widget_mic"
+            android:contentDescription="@string/widget_recognizer_mic_desc" />
+    </FrameLayout>
+</FrameLayout>
