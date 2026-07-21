@@ -1,21 +1,22 @@
 {
-  "versionCode": 630,
-  "versionName": "6.3.0",
-  "releaseDate": "2026-07-15",
-  "apkSize": "108 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.3.0/MELODY_X_v6.3.0.apk",
+  "versionCode": 700,
+  "versionName": "7.0.0",
+  "releaseDate": "2026-07-20",
+  "apkSize": "110 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v7.0.0/MELODY_X_v7.0.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
-      "New Minimalist Settings Layout",
-      "Optimized Audiophile X-Engine controls"
+      "Core Engine Migration: Successfully synchronized with the real Melody X source code",
+      "Signature Branding: Restored 'MELODY X' identity across all UI elements",
+      "Latest Upstream Integration: Optimized performance and library management"
     ],
     "improvements": [
-      "Removed donation prompts and clutter",
-      "Fixed UI spacing in Player Settings"
+      "Enhanced stability through clean code rebuild",
+      "Restored essential keystore and build configurations"
     ],
     "bugFixes": [
-      "Resolved background padding issues on large screens"
+      "Resolved build path conflicts and missing resource errors"
     ]
   }
 }
