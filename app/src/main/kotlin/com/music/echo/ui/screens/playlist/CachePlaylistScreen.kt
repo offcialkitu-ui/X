@@ -58,7 +58,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -474,25 +473,18 @@ private fun CachePlaylistHeader(
         
         Box(
             modifier = Modifier
+                .padding(horizontal = 48.dp)
+                .padding(bottom = 24.dp)
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            contentAlignment = Alignment.Center
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp))
         ) {
-            Box(
-                modifier = Modifier
-                    .then(
-                        if (LocalConfiguration.current.screenWidthDp > 600) Modifier.size(300.dp)
-                        else Modifier.fillMaxWidth().padding(horizontal = 48.dp).aspectRatio(1f)
-                    )
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
-                AsyncImage(
-                    model = songs.firstOrNull()?.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            AsyncImage(
+                model = songs.firstOrNull()?.thumbnailUrl,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         }
 
         

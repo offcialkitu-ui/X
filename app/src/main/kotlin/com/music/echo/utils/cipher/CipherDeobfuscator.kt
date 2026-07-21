@@ -2,8 +2,6 @@ package iad1tya.echo.music.utils.cipher
 
 import android.content.Context
 import android.net.Uri
-import android.os.SystemClock
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -20,7 +18,6 @@ object CipherDeobfuscator {
         PlayerConfigStore.scheduleStartupRefresh()
     }
 
-    private val rendererRecoveryPolicy = RendererRecoveryPolicy()
     private var cipherWebView: CipherWebView? = null
     private var currentPlayerHash: String? = null
     private var builtConfigEpoch = -1
@@ -28,10 +25,6 @@ object CipherDeobfuscator {
     suspend fun prewarm() {
         try {
             getOrCreateWebView(forceRefresh = false)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: CipherRendererGoneException) {
-            onRendererGone(e, "prewarm")
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Cipher WebView prewarm failed")
         }
@@ -40,24 +33,13 @@ object CipherDeobfuscator {
     suspend fun deobfuscateStreamUrl(signatureCipher: String, videoId: String): String? {
         return try {
             deobfuscateInternal(signatureCipher, videoId, isRetry = false)
-                ?.also { rendererRecoveryPolicy.onSuccess() }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: CipherRendererGoneException) {
-            onRendererGone(e, "deobfuscate")
-            null
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Cipher deobfuscation failed, retrying with fresh JS: ${e.message}")
+            
             try {
                 PlayerJsFetcher.invalidateCache()
                 closeWebView()
                 deobfuscateInternal(signatureCipher, videoId, isRetry = true)
-                    ?.also { rendererRecoveryPolicy.onSuccess() }
-            } catch (retryE: CancellationException) {
-                throw retryE
-            } catch (retryE: CipherRendererGoneException) {
-                onRendererGone(retryE, "deobfuscate-retry")
-                null
             } catch (retryE: Exception) {
                 Timber.tag(TAG).e(retryE, "Cipher deobfuscation retry also failed: ${retryE.message}")
                 null
@@ -99,11 +81,6 @@ object CipherDeobfuscator {
     suspend fun transformNParamInUrl(url: String): String {
         return try {
             transformNInternal(url)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: CipherRendererGoneException) {
-            onRendererGone(e, "n-transform")
-            url
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "N-transform failed, returning original URL: ${e.message}")
             url
@@ -128,7 +105,6 @@ object CipherDeobfuscator {
         }
 
         val transformedN = webView.transformN(nValue)
-        rendererRecoveryPolicy.onSuccess()
         Timber.tag(TAG).d("N-param transformed: $nValue -> $transformedN")
 
         
@@ -138,23 +114,7 @@ object CipherDeobfuscator {
         )
     }
 
-    private suspend fun onRendererGone(e: CipherRendererGoneException, where: String) {
-        rendererRecoveryPolicy.onFailure(SystemClock.elapsedRealtime())
-        Timber.tag(TAG).e(e, "WebView renderer gone during $where (consecutive failures: ${rendererRecoveryPolicy.consecutiveFailures}) — dropping cipher WebView")
-        closeWebView()
-    }
-
     private suspend fun getOrCreateWebView(forceRefresh: Boolean): CipherWebView? {
-        if (cipherWebView?.isDead == true) {
-            Timber.tag(TAG).w("Cached cipher WebView renderer is dead — discarding")
-            closeWebView()
-        }
-
-        if (!rendererRecoveryPolicy.shouldAttempt(SystemClock.elapsedRealtime())) {
-            Timber.tag(TAG).w("Skipping cipher WebView creation: ${rendererRecoveryPolicy.consecutiveFailures} consecutive renderer deaths, in backoff window")
-            return null
-        }
-
         val epochAtStart = PlayerConfigStore.configEpoch
         if (!forceRefresh && cipherWebView != null && builtConfigEpoch == epochAtStart) {
             return cipherWebView
@@ -237,8 +197,7 @@ object CipherDeobfuscator {
 
     private suspend fun closeWebView() {
         withContext(Dispatchers.Main) {
-            runCatching { cipherWebView?.close() }
-                .onFailure { Timber.tag(TAG).w("closeWebView threw: $it") }
+            cipherWebView?.close()
         }
         cipherWebView = null
         currentPlayerHash = null

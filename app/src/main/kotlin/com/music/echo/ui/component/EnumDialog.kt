@@ -51,7 +51,7 @@ fun <T> EnumDialog(
                     Text(
                         text = valueText(value),
                     )
-                    if (valueDescription != null && valueDescription(value).isNotEmpty()) {
+                    if (valueDescription != null) {
                         Text(
                             text = valueDescription(value),
                             style = MaterialTheme.typography.bodySmall,

@@ -29,6 +29,12 @@ import com.music.innertube.models.YTItem
 import iad1tya.echo.music.R
 import iad1tya.echo.music.constants.ThumbnailCornerRadius
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.runtime.getValue
+import iad1tya.echo.music.utils.rememberPreference
+
 @Composable
 fun SpeedDialGridItem(
     item: YTItem,
@@ -37,11 +43,32 @@ fun SpeedDialGridItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
 ) {
+    val partyMode by rememberPreference(iad1tya.echo.music.constants.PartyModeKey, defaultValue = false)
+    
+    val infiniteTransition = rememberInfiniteTransition(label = "party_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f) 
             .clip(RoundedCornerShape(ThumbnailCornerRadius))
+            .then(
+                if (partyMode && isActive) {
+                    Modifier.border(
+                        BorderStroke(2.dp, Color(0xFF00FFFF).copy(alpha = pulseAlpha)),
+                        RoundedCornerShape(ThumbnailCornerRadius)
+                    )
+                } else Modifier
+            )
     ) {
         
         ItemThumbnail(

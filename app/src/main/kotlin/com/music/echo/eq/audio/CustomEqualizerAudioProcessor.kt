@@ -125,113 +125,92 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
 
     override fun isActive(): Boolean = isActive
 
+    private var cachedBuffer: ByteBuffer = EMPTY_BUFFER
+
     override fun queueInput(inputBuffer: ByteBuffer) {
-        if (!equalizerEnabled || filters.isEmpty()) {
-            
-            val remaining = inputBuffer.remaining()
-            if (remaining == 0) return
+        val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
 
-            
-            if (outputBuffer.capacity() < remaining) {
-                outputBuffer = ByteBuffer.allocateDirect(remaining).order(ByteOrder.nativeOrder())
+        // Only reuse cached buffer if outputBuffer has been consumed (EMPTY_BUFFER)
+        // This prevents corruption when queueInput is called before getOutput()
+        val useCache = outputBuffer === EMPTY_BUFFER
+        val outBuf: ByteBuffer
+        
+        if (useCache) {
+            if (cachedBuffer === EMPTY_BUFFER || cachedBuffer.capacity() < remaining) {
+                cachedBuffer = ByteBuffer.allocateDirect(remaining).order(ByteOrder.nativeOrder())
             } else {
-                outputBuffer.clear()
+                cachedBuffer.clear()
             }
-            outputBuffer.put(inputBuffer)
-            outputBuffer.flip()
-            return
-        }
-
-        val inputSize = inputBuffer.remaining()
-        if (inputSize == 0) {
-            return
-        }
-
-        
-        
-        if (outputBuffer === EMPTY_BUFFER || outputBuffer === inputBuffer) {
-            
-            outputBuffer = ByteBuffer.allocateDirect(inputSize).order(ByteOrder.nativeOrder())
-        } else if (outputBuffer.capacity() < inputSize) {
-            
-            outputBuffer = ByteBuffer.allocateDirect(inputSize).order(ByteOrder.nativeOrder())
+            cachedBuffer.limit(remaining)
+            outBuf = cachedBuffer
         } else {
-            
-            outputBuffer.clear()
+            outBuf = ByteBuffer.allocateDirect(remaining).order(ByteOrder.nativeOrder())
         }
 
-        
+        if (!equalizerEnabled || filters.isEmpty()) {
+            outBuf.put(inputBuffer)
+            outBuf.flip()
+            outputBuffer = outBuf
+            return
+        }
+
         when (encoding) {
             C.ENCODING_PCM_16BIT -> {
-                
-                
-                processAudioBuffer16Bit(inputBuffer, outputBuffer)
+                processAudioBuffer16Bit(inputBuffer, outBuf)
             }
             else -> {
-                
-                outputBuffer.put(inputBuffer)
+                outBuf.put(inputBuffer)
             }
         }
 
-        outputBuffer.flip()
-        
+        outBuf.flip()
+        outputBuffer = outBuf
     }
 
     
     private fun processAudioBuffer16Bit(input: ByteBuffer, output: ByteBuffer) {
+        val sampleCount = input.remaining() / 2
+        val preamp = preampGain
+        val filterList = filters
         
-        
-        
-
-        val sampleCount = input.remaining() / 2 
+        if (filterList.isEmpty()) {
+            // No filters — fast path, just copy with preamp
+            repeat(sampleCount) {
+                val s = input.getShort().toDouble() / 32768.0
+                val processed = (s * preamp * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
+                output.putShort(processed)
+            }
+            return
+        }
 
         repeat(sampleCount / channelCount) {
             when (channelCount) {
                 1 -> {
-                    
-                    val sample = input.getShort().toDouble() / 32768.0 
+                    val sample = input.getShort().toDouble() / 32768.0
                     var processed = sample
-
-                    
-                    for (filter in filters) {
+                    for (filter in filterList) {
                         processed = filter.processSample(processed)
                     }
-
-                    
-                    processed *= preampGain
-
-                    
-                    val outputSample = (processed * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
-                    output.putShort(outputSample)
+                    processed *= preamp
+                    output.putShort((processed * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
                 }
                 2 -> {
-                    
                     val leftSample = input.getShort().toDouble() / 32768.0
                     val rightSample = input.getShort().toDouble() / 32768.0
-
                     var processedLeft = leftSample
                     var processedRight = rightSample
-
-                    
-                    for (filter in filters) {
+                    for (filter in filterList) {
                         val (left, right) = filter.processStereo(processedLeft, processedRight)
                         processedLeft = left
                         processedRight = right
                     }
-
-                    
-                    processedLeft *= preampGain
-                    processedRight *= preampGain
-
-                    
-                    val outputLeft = (processedLeft * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
-                    val outputRight = (processedRight * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
-
-                    output.putShort(outputLeft)
-                    output.putShort(outputRight)
+                    processedLeft *= preamp
+                    processedRight *= preamp
+                    output.putShort((processedLeft * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
+                    output.putShort((processedRight * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
                 }
                 else -> {
-                    
                     repeat(channelCount) {
                         output.putShort(input.getShort())
                     }

@@ -12,8 +12,6 @@ import com.music.innertube.models.Artist
 import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import com.music.innertube.models.WatchEndpoint
 import com.music.innertube.models.BrowseEndpoint
 import com.music.innertube.models.YTItem
@@ -75,6 +73,7 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext val context: Context,
     val database: MusicDatabase,
     val syncUtils: SyncUtils,
+    val echoBrainEngine: iad1tya.echo.music.engine.EchoBrainEngine
 ) : ViewModel() {
     val isRefreshing = MutableStateFlow(false)
     val isLoading = MutableStateFlow(false)
@@ -93,21 +92,10 @@ class HomeViewModel @Inject constructor(
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
     val communityPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
+    val echoBrainPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
+    val onThisDaySongs = MutableStateFlow<List<Song>?>(null)
     val selectedChip = MutableStateFlow<HomePage.Chip?>(null)
     private val previousHomePage = MutableStateFlow<HomePage?>(null)
-
-    val aiRecommendedPlaylist = database.playlistsByNameAsc()
-        .map { playlists -> playlists.find { it.playlist.name == "Recommended by AI" } }
-        .flatMapLatest { playlist -> 
-            if (playlist != null && playlist.songCount > 0) {
-                database.playlistSongs(playlist.playlist.id).map { playlistSongs -> 
-                    playlist to playlistSongs.map { it.song }
-                }
-            } else {
-                flowOf(null)
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     val allLocalItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
@@ -419,6 +407,37 @@ class HomeViewModel @Inject constructor(
         communityPlaylists.value = playlists.shuffled()
     }
 
+    private suspend fun getEchoBrainPlaylists() {
+        val brainMix = echoBrainEngine.generateBrainMix()
+        
+        if (brainMix.isNotEmpty()) {
+            val songs = brainMix.map { meta ->
+                SongItem(
+                    id = meta.id,
+                    title = meta.title,
+                    artists = meta.artists.map { Artist(name = it.name, id = it.id) },
+                    thumbnail = meta.thumbnailUrl ?: "",
+                    explicit = false
+                )
+            }
+            
+            val playlistItem = PlaylistItem(
+                id = "echo_brain_mix_local",
+                title = "Made for You",
+                author = Artist(name = "Melody Brain", id = null),
+                songCountText = "${songs.size} songs",
+                thumbnail = songs.firstOrNull()?.thumbnail ?: "",
+                playEndpoint = WatchEndpoint(videoId = songs.firstOrNull()?.id ?: "", playlistId = "echo_brain_mix_local"),
+                shuffleEndpoint = WatchEndpoint(videoId = songs.firstOrNull()?.id ?: "", playlistId = "echo_brain_mix_local"),
+                radioEndpoint = WatchEndpoint(videoId = songs.firstOrNull()?.id ?: "", playlistId = "echo_brain_mix_local")
+            )
+            
+            echoBrainPlaylists.value = listOf(CommunityPlaylistItem(playlistItem, songs))
+        } else {
+            echoBrainPlaylists.value = emptyList()
+        }
+    }
+
     
     private suspend fun loadLocalDataPhase() {
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
@@ -437,7 +456,10 @@ class HomeViewModel @Inject constructor(
             .filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }.shuffled().take(5)
         keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
 
-        allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
+        onThisDaySongs.value = database.songsOnThisDay().first()
+            .filterVideoSongs(hideVideoSongs).shuffled().take(20)
+
+        allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty() + onThisDaySongs.value.orEmpty())
             .filter { it is Song || it is Album }
     }
 
@@ -534,6 +556,7 @@ class HomeViewModel @Inject constructor(
         coroutineScope {
             launch(Dispatchers.IO) { getDailyDiscover() }
             launch(Dispatchers.IO) { getCommunityPlaylists() }
+            launch(Dispatchers.IO) { getEchoBrainPlaylists() }
             launch(Dispatchers.IO) { loadSimilarRecommendations() }
             launch(Dispatchers.IO) {
                 YouTube.home().onSuccess { page ->

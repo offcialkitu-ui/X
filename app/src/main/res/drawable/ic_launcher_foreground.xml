@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <group android:translateX="10" android:translateY="10" android:scaleX="0.8" android:scaleY="0.8">
+        <!-- Outer Ring -->
+        <path
+            android:pathData="M50,15 A35,35 0 1,1 50,85 A35,35 0 1,1 50,15 Z"
+            android:strokeWidth="7"
+            android:strokeColor="#FFFFFF"
+            android:fillColor="#00000000"/>
+
+        <!-- Middle Ring -->
+        <path
+            android:pathData="M50,32 A18,18 0 1,1 50,68 A18,18 0 1,1 50,32 Z"
+            android:strokeWidth="7"
+            android:strokeColor="#FFFFFF"
+            android:fillColor="#00000000"/>
+
+        <!-- Inner Ring -->
+        <path
+            android:pathData="M50,44 A6,6 0 1,1 50,56 A6,6 0 1,1 50,44 Z"
+            android:strokeWidth="7"
+            android:strokeColor="#FFFFFF"
+            android:fillColor="#00000000"/>
+    </group>
+</vector>

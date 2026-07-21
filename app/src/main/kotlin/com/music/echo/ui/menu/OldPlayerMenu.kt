@@ -35,10 +35,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -52,7 +48,6 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.music.innertube.YouTube
 import iad1tya.echo.music.LocalDatabase
 import iad1tya.echo.music.LocalDownloadUtil
@@ -67,7 +62,6 @@ import iad1tya.echo.music.constants.ListItemHeight
 import iad1tya.echo.music.extensions.toggleRepeatMode
 import iad1tya.echo.music.listentogether.RoomRole
 import iad1tya.echo.music.models.MediaMetadata
-import iad1tya.echo.music.models.toMediaMetadata
 import iad1tya.echo.music.playback.ExoDownloadService
 import iad1tya.echo.music.ui.component.BottomSheetState
 import iad1tya.echo.music.ui.component.ListDialog
@@ -77,7 +71,6 @@ import iad1tya.echo.music.ui.component.NewAction
 import iad1tya.echo.music.ui.component.NewActionGrid
 import iad1tya.echo.music.ui.component.VolumeSlider
 import iad1tya.echo.music.utils.rememberPreference
-import iad1tya.echo.music.viewmodels.CachePlaylistViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -111,7 +104,8 @@ fun OldPlayerMenu(
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata.id).collectAsState(initial = null)
 
     val listenTogetherManager = LocalListenTogetherManager.current
-    val isListenTogetherGuest by listenTogetherManager?.guestPlaybackRestricted?.collectAsState(initial = false) ?: remember { mutableStateOf(false) }
+    val listenTogetherRoleState = listenTogetherManager?.role?.collectAsState(initial = RoomRole.NONE)
+    val isListenTogetherGuest = listenTogetherRoleState?.value == RoomRole.GUEST
 
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val librarySong by database.song(mediaMetadata.id).collectAsState(initial = null)
@@ -121,8 +115,6 @@ fun OldPlayerMenu(
     val artists = remember(mediaMetadata.artists) {
         mediaMetadata.artists.filter { it.id != null }
     }
-
-    val ringtoneViewModel = iad1tya.echo.music.LocalRingtoneViewModel.current
 
     val (enableExportAsMp3) = rememberPreference(key = EnableExportAsMp3Key, defaultValue = false)
     val (exportDirectoryUri) = rememberPreference(key = ExportDirectoryUriKey, defaultValue = "")
@@ -136,13 +128,6 @@ fun OldPlayerMenu(
     var showListenTogetherDialog by rememberSaveable { mutableStateOf(false) }
     var showSelectArtistDialog by rememberSaveable { mutableStateOf(false) }
     var showPitchTempoDialog by rememberSaveable { mutableStateOf(false) }
-    var refetchIconDegree by remember { mutableFloatStateOf(0f) }
-    val cacheViewModel = hiltViewModel<CachePlaylistViewModel>()
-    val rotationAnimation by animateFloatAsState(
-        targetValue = refetchIconDegree,
-        animationSpec = tween(durationMillis = 800, easing = LinearEasing),
-        label = ""
-    )
 
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
@@ -195,13 +180,14 @@ fun OldPlayerMenu(
         TempoPitchDialog(onDismiss = { showPitchTempoDialog = false })
     }
 
-    if (isCasting && castDeviceName != null) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 24.dp, bottom = 6.dp),
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(top = 24.dp, bottom = 6.dp),
+    ) {
+        
+        if (isCasting && castDeviceName != null) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -223,8 +209,26 @@ fun OldPlayerMenu(
                 )
             }
         }
+
+        VolumeSlider(
+            value = if (isCasting) castVolume else playerVolume.value,
+            onValueChange = { volume ->
+                if (isCasting) {
+                    castHandler?.setVolume(volume)
+                } else {
+                    playerConnection.service.playerVolume.value = volume
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            accentColor = MaterialTheme.colorScheme.primary
+        )
     }
 
+    Spacer(modifier = Modifier.height(20.dp))
+
+    HorizontalDivider()
+
+    Spacer(modifier = Modifier.height(12.dp))
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -513,46 +517,6 @@ fun OldPlayerMenu(
                             )
                         )
                     }
-
-                    add(
-                        Material3MenuItemData(
-                            title = { Text(text = stringResource(R.string.refetch)) },
-                            description = { Text(text = stringResource(R.string.refetch_desc)) },
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.sync),
-                                    contentDescription = null,
-                                    modifier = Modifier.graphicsLayer(rotationZ = rotationAnimation)
-                                )
-                            },
-                            onClick = {
-                                refetchIconDegree -= 360
-                                cacheViewModel.removeSongFromCache(mediaMetadata.id)
-                                androidx.media3.exoplayer.offline.DownloadService.sendRemoveDownload(context, iad1tya.echo.music.playback.ExoDownloadService::class.java, mediaMetadata.id, false)
-                                val intent = android.content.Intent(context, iad1tya.echo.music.playback.MusicService::class.java).apply {
-                                    action = "iad1tya.echo.music.ACTION_CLEAR_SONG_CACHE"
-                                    putExtra("songId", mediaMetadata.id)
-                                }
-                                context.startService(intent)
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    database.query { deleteFormat(mediaMetadata.id) }
-                                    YouTube.queue(listOf(mediaMetadata.id)).onSuccess {
-                                        val newSong = it.firstOrNull()
-                                        if (newSong != null) {
-                                            database.transaction {
-                                                val songToUpdate = librarySong
-                                                if (songToUpdate != null) {
-                                                    update(songToUpdate, newSong.toMediaMetadata())
-                                                } else {
-                                                    insert(newSong.toMediaMetadata())
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    )
                 }
             )
         }
@@ -623,38 +587,6 @@ fun OldPlayerMenu(
                         )
                     )
                 }
-            )
-        }
-
-        item { Spacer(modifier = Modifier.height(12.dp)) }
-
-        item {
-            Material3MenuGroup(
-                items = listOf(
-                    Material3MenuItemData(
-                        title = { Text(text = "Set as Ringtone") },
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.notification),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        },
-                        onClick = {
-                            if (ringtoneViewModel.hasSettingsPermission(context)) {
-                                ringtoneViewModel.showTrimmer(
-                                    mediaMetadata.id,
-                                    mediaMetadata.title,
-                                    mediaMetadata.artists.joinToString { it.name },
-                                    mediaMetadata.duration
-                                )
-                            } else {
-                                ringtoneViewModel.requestSettingsPermission(context)
-                            }
-                            onDismiss()
-                        }
-                    )
-                )
             )
         }
 

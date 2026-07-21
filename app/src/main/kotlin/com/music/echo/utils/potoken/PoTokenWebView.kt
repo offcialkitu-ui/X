@@ -4,16 +4,7 @@ import android.content.Context
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
-import android.os.Handler
-import android.os.Looper
-import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebView
-import android.webkit.WebViewClient
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.withTimeout
-import java.util.concurrent.atomic.AtomicBoolean
 import androidx.annotation.MainThread
 import androidx.collection.ArrayMap
 import com.music.innertube.YouTube
@@ -43,18 +34,8 @@ class PoTokenWebView private constructor(
 ) {
     private val webView = WebView(context)
     private val scope = MainScope()
-    private val initResumed = AtomicBoolean(false)
-    @Volatile
-    private var closed = false
-    @Volatile
-    var isDead: Boolean = false
-        private set
     private val poTokenContinuations =
-        Collections.synchronizedMap(ArrayMap<Int, Continuation<String>>())
-    private var nextReqId = 0
-
-    @Synchronized
-    private fun getNextReqId(): Int = ++nextReqId
+        Collections.synchronizedMap(ArrayMap<String, Continuation<String>>())
     private val exceptionHandler = CoroutineExceptionHandler { _, t ->
         onInitializationErrorCloseAndCancel(t)
     }
@@ -90,21 +71,6 @@ class PoTokenWebView private constructor(
                     popAllPoTokenContinuations().forEach { (_, cont) -> cont.resumeWithException(exception) }
                 }
                 return super.onConsoleMessage(m)
-            }
-        }
-
-        webView.webViewClient = object : WebViewClient() {
-            @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.O)
-            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-                val didCrash = runCatching { detail.didCrash() }.getOrNull()
-                Timber.tag(TAG).e("PoToken WebView render process gone (didCrash=$didCrash)")
-                isDead = true
-                val exception = PoTokenException("WebView render process gone (didCrash=$didCrash)")
-                onInitializationErrorCloseAndCancel(exception)
-                popAllPoTokenContinuations().forEach { (_, cont) ->
-                    runCatching { cont.resumeWithException(exception) }
-                }
-                return true
             }
         }
     }
@@ -207,35 +173,16 @@ class PoTokenWebView private constructor(
     @JavascriptInterface
     fun onMinterCreated() {
         Timber.tag(TAG).d("poToken minter created successfully, initialization complete")
-        if (initResumed.compareAndSet(false, true)) {
-            continuation.resume(this)
-        }
+        continuation.resume(this)
     }
     
 
     
     suspend fun generatePoToken(identifier: String): String {
-        if (isDead || closed) {
-            throw PoTokenException("PoToken WebView is dead/closed")
-        }
-        return try {
-            withTimeout(GENERATE_TIMEOUT_MS) {
-                generatePoTokenInternal(identifier)
-            }
-        } catch (e: TimeoutCancellationException) {
-            isDead = true
-            Timber.tag(TAG).e("generatePoToken($identifier) timed out")
-            throw PoTokenException("poToken generation timed out")
-        }
-    }
-
-    private suspend fun generatePoTokenInternal(identifier: String): String {
         return withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { cont ->
                 Timber.tag(TAG).d("generatePoToken() called with identifier $identifier")
-                val reqId = getNextReqId()
-                addPoTokenEmitter(reqId, cont)
-                cont.invokeOnCancellation { popPoTokenContinuation(reqId) }
+                addPoTokenEmitter(identifier, cont)
                 
                 webView.evaluateJavascript(
                     """try {
@@ -243,12 +190,12 @@ class PoTokenWebView private constructor(
                         u8Identifier = ${stringToU8(identifier)}
                         obtainPoToken(u8Identifier).then(function(poTokenU8) {
                             poTokenU8String = poTokenU8.join(",")
-                            $JS_INTERFACE.onObtainPoTokenResult($reqId, identifier, poTokenU8String)
+                            $JS_INTERFACE.onObtainPoTokenResult(identifier, poTokenU8String)
                         }).catch(function(error) {
-                            $JS_INTERFACE.onObtainPoTokenError($reqId, identifier, error + "\n" + (error.stack || ''))
+                            $JS_INTERFACE.onObtainPoTokenError(identifier, error + "\n" + (error.stack || ''))
                         })
                     } catch (error) {
-                        $JS_INTERFACE.onObtainPoTokenError($reqId, identifier, error + "\n" + error.stack)
+                        $JS_INTERFACE.onObtainPoTokenError(identifier, error + "\n" + error.stack)
                     }""",
                     null
                 )
@@ -258,26 +205,26 @@ class PoTokenWebView private constructor(
 
     
     @JavascriptInterface
-    fun onObtainPoTokenError(reqId: Int, identifier: String, error: String) {
+    fun onObtainPoTokenError(identifier: String, error: String) {
         if (BuildConfig.DEBUG) {
             Timber.tag(TAG).e("obtainPoToken error from JavaScript: $error")
         }
-        popPoTokenContinuation(reqId)?.resumeWithException(buildExceptionForJsError(error))
+        popPoTokenContinuation(identifier)?.resumeWithException(buildExceptionForJsError(error))
     }
 
     
     @JavascriptInterface
-    fun onObtainPoTokenResult(reqId: Int, identifier: String, poTokenU8: String) {
+    fun onObtainPoTokenResult(identifier: String, poTokenU8: String) {
         Timber.tag(TAG).d("Generated poToken (before decoding): identifier=$identifier poTokenU8=$poTokenU8")
         val poToken = try {
             u8ToBase64(poTokenU8)
         } catch (t: Throwable) {
-            popPoTokenContinuation(reqId)?.resumeWithException(t)
+            popPoTokenContinuation(identifier)?.resumeWithException(t)
             return
         }
 
         Timber.tag(TAG).d("Generated poToken: identifier=$identifier poToken=$poToken")
-        popPoTokenContinuation(reqId)?.resume(poToken)
+        popPoTokenContinuation(identifier)?.resume(poToken)
     }
 
     val isExpired: Boolean
@@ -285,15 +232,15 @@ class PoTokenWebView private constructor(
     
 
     
-    private fun addPoTokenEmitter(reqId: Int, continuation: Continuation<String>) {
-        poTokenContinuations[reqId] = continuation
+    private fun addPoTokenEmitter(identifier: String, continuation: Continuation<String>) {
+        poTokenContinuations[identifier] = continuation
     }
 
-    private fun popPoTokenContinuation(reqId: Int): Continuation<String>? {
-        return poTokenContinuations.remove(reqId)
+    private fun popPoTokenContinuation(identifier: String): Continuation<String>? {
+        return poTokenContinuations.remove(identifier)
     }
 
-    private fun popAllPoTokenContinuations(): Map<Int, Continuation<String>> {
+    private fun popAllPoTokenContinuations(): Map<String, Continuation<String>> {
         val result = poTokenContinuations.toMap()
         poTokenContinuations.clear()
         return result
@@ -334,32 +281,21 @@ class PoTokenWebView private constructor(
 
     private fun onInitializationErrorCloseAndCancel(error: Throwable) {
         close()
-        if (initResumed.compareAndSet(false, true)) {
-            runCatching { continuation.resumeWithException(error) }
-        }
+        continuation.resumeWithException(error)
     }
 
+    @MainThread
     fun close() {
-        if (closed) return
-        closed = true
         scope.cancel()
 
-        val teardown = Runnable {
-            runCatching {
-                webView.clearHistory()
-                webView.clearCache(true)
-                webView.loadUrl("about:blank")
-                webView.onPause()
-                webView.removeAllViews()
-                webView.destroy()
-            }.onFailure { Timber.tag(TAG).w("WebView teardown threw: $it") }
-        }
+        webView.clearHistory()
+        webView.clearCache(true)
 
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            teardown.run()
-        } else {
-            Handler(Looper.getMainLooper()).post(teardown)
-        }
+        webView.loadUrl("about:blank")
+
+        webView.onPause()
+        webView.removeAllViews()
+        webView.destroy()
     }
     
 
@@ -370,7 +306,6 @@ class PoTokenWebView private constructor(
         private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.3"
         private const val JS_INTERFACE = "PoTokenWebView"
-        private const val GENERATE_TIMEOUT_MS = 10_000L
 
         private val httpClient = OkHttpClient.Builder()
             .proxy(YouTube.proxy)

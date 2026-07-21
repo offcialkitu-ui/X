@@ -167,7 +167,7 @@ highlightKey: String? = null) {
     )
     val (ipVersion, onIpVersionChange) = rememberEnumPreference(
         IpVersionKey,
-        defaultValue = IpVersion.IPV4
+        defaultValue = IpVersion.AUTO
     )
     val (albumCanvasEnabled, onAlbumCanvasEnabledChange) = rememberPreference(key = AlbumCanvasEnabledKey, defaultValue = false)
 

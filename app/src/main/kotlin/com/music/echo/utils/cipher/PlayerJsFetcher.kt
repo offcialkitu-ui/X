@@ -2,7 +2,6 @@ package iad1tya.echo.music.utils.cipher
 
 import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -95,8 +94,8 @@ object PlayerJsFetcher {
             val timestamp = hashData[1].toLongOrNull() ?: return null
 
             
-            if (System.currentTimeMillis() - timestamp !in 0..<CACHE_TTL_MS) {
-                Timber.tag(TAG).d("Cache expired or clock skew detected (hash=$hash)")
+            if (System.currentTimeMillis() - timestamp > CACHE_TTL_MS) {
+                Timber.tag(TAG).d("Cache expired (hash=$hash)")
                 return null
             }
 
@@ -113,16 +112,14 @@ object PlayerJsFetcher {
         }
     }
 
-    private val cacheMutex = kotlinx.coroutines.sync.Mutex()
-
-    private suspend fun writeToCache(hash: String, playerJs: String) = cacheMutex.withLock {
+    private fun writeToCache(hash: String, playerJs: String) {
         try {
             val cacheDir = getCacheDir()
             
             cacheDir.listFiles()?.filter { it.name.startsWith("player_") }?.forEach { it.delete() }
 
-            PlayerConfigStore.writeAtomic(getCacheFile(hash), playerJs)
-            PlayerConfigStore.writeAtomic(getHashFile(), "$hash\n${System.currentTimeMillis()}")
+            getCacheFile(hash).writeText(playerJs)
+            getHashFile().writeText("$hash\n${System.currentTimeMillis()}")
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error writing cache: ${e.message}")
         }

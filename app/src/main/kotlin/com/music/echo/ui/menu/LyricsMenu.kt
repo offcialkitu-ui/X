@@ -74,7 +74,6 @@ import iad1tya.echo.music.constants.DeeplApiKey
 import iad1tya.echo.music.constants.AiProviderKey
 import iad1tya.echo.music.constants.TranslateLanguageKey
 import iad1tya.echo.music.constants.TranslateModeKey
-import iad1tya.echo.music.constants.AutoTranslateKey
 import iad1tya.echo.music.constants.OpenRouterBaseUrlKey
 import iad1tya.echo.music.constants.OpenRouterModelKey
 import iad1tya.echo.music.constants.DeeplFormalityKey
@@ -100,7 +99,6 @@ fun LyricsMenu(
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     val translateLanguage by rememberPreference(TranslateLanguageKey, "en")
     val translateMode by rememberPreference(TranslateModeKey, "Literal")
-    var autoTranslate by rememberPreference(AutoTranslateKey, false)
     val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, "https://openrouter.ai/api/v1/chat/completions")
     val openRouterModel by rememberPreference(OpenRouterModelKey, "google/gemini-2.5-flash-lite")
     val deeplFormality by rememberPreference(DeeplFormalityKey, "default")
@@ -446,7 +444,7 @@ fun LyricsMenu(
                     if (hasApiKey) {
                         add(
                             Material3MenuItemData(
-                                title = { Text(stringResource(R.string.lyrics_translation_menu)) },
+                                title = { Text(stringResource(R.string.ai_lyrics_translation)) },
                                 icon = {
                                     Icon(
                                         painter = painterResource(R.drawable.translate),
@@ -454,23 +452,30 @@ fun LyricsMenu(
                                     )
                                 },
                                 onClick = {
-                                    autoTranslate = !autoTranslate
-                                    if (!autoTranslate && hasTranslations) {
+                                    if (hasTranslations) {
+                                        
                                         lyricsProvider()?.let { lyrics ->
                                             val clearedLyrics = LyricsTranslationHelper.clearTranslations(lyrics)
                                             database.query {
                                                 upsert(clearedLyrics)
                                             }
+                                            
                                             LyricsTranslationHelper.triggerClearTranslations()
                                         }
+                                    } else {
+                                        
+                                        LyricsTranslationHelper.triggerManualTranslation()
                                     }
                                 },
                                 trailingContent = {
                                     Switch(
-                                        checked = autoTranslate,
+                                        checked = hasTranslations,
                                         onCheckedChange = { newCheckedState ->
-                                            autoTranslate = newCheckedState
-                                            if (!newCheckedState && hasTranslations) {
+                                            if (newCheckedState) {
+                                                
+                                                LyricsTranslationHelper.triggerManualTranslation()
+                                            } else {
+                                                
                                                 lyricsProvider()?.let { lyrics ->
                                                     val clearedLyrics = LyricsTranslationHelper.clearTranslations(lyrics)
                                                     database.query {

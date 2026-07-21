@@ -63,7 +63,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -537,17 +536,14 @@ private fun TopPlaylistHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 48.dp),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 48.dp)
         ) {
             AsyncImage(
                 model = songs[0].thumbnailUrl,
                 contentDescription = null,
                 modifier = Modifier
-                    .then(
-                        if (LocalConfiguration.current.screenWidthDp > 600) Modifier.size(300.dp)
-                        else Modifier.fillMaxWidth().aspectRatio(1f)
-                    )
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )

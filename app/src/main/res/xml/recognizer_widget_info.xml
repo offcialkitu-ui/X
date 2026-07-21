@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  MelodyX Music Recognizer Widget – 4×1 pill-shaped.
+  States: idle (tap to identify), listening (animated waveform),
+  success (artwork + song name + "Play in MelodyX").
+  Android 12+ features: previewLayout, description, widgetCategory,
+  targetCellWidth/Height, and resizeMode.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="40dp"
     android:minHeight="40dp"
     android:minResizeWidth="40dp"
     android:minResizeHeight="40dp"
+    android:maxResizeWidth="520dp"
+    android:maxResizeHeight="100dp"
     android:updatePeriodMillis="0"
     android:previewLayout="@layout/widget_recognizer_wide"
     android:initialLayout="@layout/widget_recognizer_wide"
     android:description="@string/widget_recognizer_description"
     android:widgetCategory="home_screen"
-    android:resizeMode="horizontal|vertical" />
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1" />

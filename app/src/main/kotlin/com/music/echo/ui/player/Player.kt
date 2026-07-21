@@ -197,10 +197,12 @@ import iad1tya.echo.music.ui.component.ResizableIconButton
 import iad1tya.echo.music.ui.component.SquigglySlider
 import iad1tya.echo.music.ui.component.WavySlider
 import iad1tya.echo.music.ui.component.rememberBottomSheetState
+import iad1tya.echo.music.ui.component.LiquidGlassBackground
 import iad1tya.echo.music.ui.menu.OldPlayerMenu
 import iad1tya.echo.music.ui.menu.PlayerMenu
 import iad1tya.echo.music.ui.component.VolumeSlider
 import iad1tya.echo.music.ui.screens.settings.DarkMode
+import iad1tya.echo.music.ui.theme.DefaultThemeColor
 import iad1tya.echo.music.ui.theme.PlayerColorExtractor
 import iad1tya.echo.music.ui.theme.PlayerSliderColors
 import iad1tya.echo.music.ui.utils.ShowMediaInfo
@@ -337,8 +339,6 @@ fun BottomSheetPlayer(
     }
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val isCrossfading by playerConnection.isCrossfading.collectAsState()
-    val isAutomixing by playerConnection.isAutomixing.collectAsState()
-    val automixDebug by playerConnection.automixDebugInfo.collectAsState()
     
     var currentAudioFormat by remember { mutableStateOf<androidx.media3.common.Format?>(null) }
     DisposableEffect(playerConnection, isCrossfading) {
@@ -416,7 +416,8 @@ fun BottomSheetPlayer(
     
     
     val listenTogetherManager = LocalListenTogetherManager.current
-    val isListenTogetherGuest by listenTogetherManager?.guestPlaybackRestricted?.collectAsState(initial = false) ?: remember { mutableStateOf(false) }
+    val listenTogetherRoleState = listenTogetherManager?.role?.collectAsState(initial = RoomRole.NONE)
+    val isListenTogetherGuest = listenTogetherRoleState?.value == RoomRole.GUEST
     
     
     val castHandler = remember(playerConnection) {
@@ -661,7 +662,7 @@ fun BottomSheetPlayer(
         playerBackground == PlayerBackgroundStyle.GRADIENT ||
         playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED ||
         playerBackground == PlayerBackgroundStyle.APPLE_MUSIC ||
-        playerBackground == PlayerBackgroundStyle.LIVE_MESH || playerBackground == PlayerBackgroundStyle.LIQUID_GLASS -> {
+        playerBackground == PlayerBackgroundStyle.LIVE_MESH -> {
             when (playerButtonsStyle) {
                 PlayerButtonsStyle.DEFAULT -> Pair(Color.White, Color.Black)
                 PlayerButtonsStyle.PRIMARY -> Pair(
@@ -839,10 +840,11 @@ fun BottomSheetPlayer(
     
     
     
+    // Position polling — increase interval to 250ms to reduce CPU load while staying smooth
     LaunchedEffect(isPlaying, isCasting) {
         if (!isCasting && isPlaying) {
             while (isActive) {
-                delay(100) 
+                delay(250)
                 if (sliderPosition == null) { 
                     position = playerConnection.player.currentPosition
                     duration = playerConnection.player.duration
@@ -883,9 +885,9 @@ fun BottomSheetPlayer(
 
     val bottomSheetBackgroundColor = when {
         isLocalMedia -> Color.Black
-        playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC) ->
+        playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIQUID_GLASS) ->
             MaterialTheme.colorScheme.surfaceContainer
-        playerBackground == PlayerBackgroundStyle.LIVE_MESH || playerBackground == PlayerBackgroundStyle.LIQUID_GLASS -> Color.Black
+        playerBackground == PlayerBackgroundStyle.LIVE_MESH -> Color.Black
         else ->
             if (useBlackBackground) Color.Black
             else MaterialTheme.colorScheme.surfaceContainer
@@ -1123,6 +1125,12 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
+                    PlayerBackgroundStyle.LIQUID_GLASS -> {
+                        LiquidGlassBackground(
+                            dominantColor = gradientColors.firstOrNull() ?: DefaultThemeColor,
+                            modifier = Modifier.alpha(backgroundAlpha)
+                        )
+                    }
                     PlayerBackgroundStyle.APPLE_MUSIC -> {
                         AnimatedContent(
                             targetState = backgroundThumbnailUrl,
@@ -1217,7 +1225,7 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
-                    PlayerBackgroundStyle.LIVE_MESH, PlayerBackgroundStyle.LIQUID_GLASS -> {
+                    PlayerBackgroundStyle.LIVE_MESH -> {
                         val infiniteTransition = rememberInfiniteTransition(label = "liveMeshRotation")
                         
                         val anchorRotation by infiniteTransition.animateFloat(
@@ -1396,16 +1404,14 @@ fun BottomSheetPlayer(
                                 Box(
                                     modifier = Modifier
                                         .size(56.dp)
-                                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                                        .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
+                                    Image(
                                         painter = painterResource(R.drawable.ic_launcher_nobg),
                                         contentDescription = null,
-                                        modifier = Modifier
-                                            .size(32.dp),
-                                        tint = textButtonColor.copy(alpha = 0.7f)
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                             } else {
@@ -2055,16 +2061,7 @@ fun BottomSheetPlayer(
                     }
 
                     val isBuffering = playbackState == androidx.media3.common.Player.STATE_BUFFERING
-
-                    // Beat-synced automix countdown: beats left until the planned mix point,
-                    // ticking with playback position and pulsing at the track's tempo.
-                    val mixBeatMs = automixDebug?.outBpm?.takeIf { it > 0f }?.let { 60_000f / it } ?: 500f
-                    val mixBeatsLeft = automixDebug?.triggerTimeMs?.let {
-                        kotlin.math.ceil((it - (sliderPosition ?: effectivePosition)) / mixBeatMs).toInt()
-                    }
-                    val mixCountdownActive = !isCrossfading && mixBeatsLeft != null && mixBeatsLeft in 1..16
-
-                    val shouldShowCodecBox = showCodecOnPlayer && (formatText.isNotEmpty() || isBuffering) || isCrossfading || mixCountdownActive
+                    val shouldShowCodecBox = showCodecOnPlayer && (formatText.isNotEmpty() || isBuffering) || isCrossfading
                     if (sleepTimerEnabled || shouldShowCodecBox) {
                         Box(
                             modifier = Modifier
@@ -2083,7 +2080,6 @@ fun BottomSheetPlayer(
                             val codecBoxState = when {
                                 sleepTimerEnabled -> 0
                                 isCrossfading -> 1
-                                mixCountdownActive -> 4
                                 isBuffering -> 2
                                 else -> 3
                             }
@@ -2134,13 +2130,13 @@ fun BottomSheetPlayer(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(
-                                                painter = painterResource(if (isAutomixing) R.drawable.graphic_eq else R.drawable.sync),
-                                                contentDescription = if (isAutomixing) "Automixing" else "Crossfading",
+                                                painter = painterResource(R.drawable.sync),
+                                                contentDescription = "Crossfading",
                                                 tint = TextBackgroundColor.copy(alpha = alpha),
                                                 modifier = Modifier.size(12.dp)
                                             )
                                             Text(
-                                                text = stringResource(if (isAutomixing) R.string.automixing else R.string.crossfading),
+                                                text = stringResource(R.string.crossfading),
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
@@ -2185,39 +2181,6 @@ fun BottomSheetPlayer(
                                             maxLines = 1,
                                         )
                                     }
-                                    4 -> {
-                                        val beatTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "MixCountdownBeat")
-                                        val beatAlpha by beatTransition.animateFloat(
-                                            initialValue = 1f,
-                                            targetValue = 0.35f,
-                                            animationSpec = infiniteRepeatable(
-                                                animation = tween(mixBeatMs.toInt().coerceIn(200, 1000), easing = LinearEasing),
-                                                repeatMode = RepeatMode.Restart
-                                            ),
-                                            label = "MixCountdownAlpha"
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.graphic_eq),
-                                                contentDescription = null,
-                                                tint = TextBackgroundColor.copy(alpha = beatAlpha),
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                            Text(
-                                                text = stringResource(R.string.automix_mix_in, mixBeatsLeft ?: 0),
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 1.5.sp
-                                                ),
-                                                color = TextBackgroundColor.copy(alpha = beatAlpha),
-                                                maxLines = 1,
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -2233,47 +2196,6 @@ fun BottomSheetPlayer(
                     textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f)
                 )
-            }
-
-            val automixDebugOverlay by rememberPreference(iad1tya.echo.music.constants.AutomixDebugOverlayKey, false)
-            if (automixDebugOverlay) {
-                automixDebug?.let { dbg ->
-                    val mono = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 9.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                    )
-                    Column(
-                        modifier = Modifier
-                            .padding(horizontal = PlayerHorizontalPadding, vertical = 4.dp)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(TextBackgroundColor.copy(alpha = 0.08f))
-                            .padding(6.dp)
-                    ) {
-                        Text("AUTOMIX  ${dbg.status}", style = mono, color = TextBackgroundColor)
-                        Text(
-                            "out: ${dbg.outBpm?.let { "%.1f bpm".format(it) } ?: "—"}" +
-                                (dbg.outConfidence?.let { "  conf %.2f".format(it) } ?: "") +
-                                (dbg.outMixOutMs?.takeIf { it > 0 }?.let { "  mixOut ${makeTimeString(it)}" } ?: ""),
-                            style = mono, color = TextBackgroundColor.copy(alpha = 0.85f)
-                        )
-                        Text(
-                            "in:  ${dbg.inBpm?.let { "%.1f bpm".format(it) } ?: "—"}" +
-                                (dbg.inConfidence?.let { "  conf %.2f".format(it) } ?: "") +
-                                (dbg.inMixInMs?.takeIf { it > 0 }?.let { "  mixIn ${makeTimeString(it)}" } ?: ""),
-                            style = mono, color = TextBackgroundColor.copy(alpha = 0.85f)
-                        )
-                        if (dbg.triggerTimeMs != null) {
-                            val remainingS = ((dbg.triggerTimeMs - (sliderPosition ?: effectivePosition)) / 1000).coerceAtLeast(0)
-                            Text(
-                                "mix @ ${makeTimeString(dbg.triggerTimeMs)} (in ${remainingS}s)" +
-                                    (dbg.incomingStartMs?.let { "  from ${makeTimeString(it)}" } ?: "") +
-                                    (dbg.tempoRatio?.let { "  ×%.3f".format(it) } ?: ""),
-                                style = mono, color = TextBackgroundColor.copy(alpha = 0.85f)
-                            )
-                        }
-                    }
-                }
             }
 
             Spacer(Modifier.height(if (useNewPlayerDesign) 24.dp else 12.dp))

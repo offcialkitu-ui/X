@@ -1,5 +1,4 @@
 
-
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package iad1tya.echo.music.ui.component
@@ -43,7 +42,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.ui.draw.blur
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.FloatingToolbarScrollBehavior
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -63,6 +61,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -74,7 +74,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import iad1tya.echo.music.R
+import iad1tya.echo.music.constants.LiquidGlassBlurRadiusKey
+import iad1tya.echo.music.constants.LiquidGlassEnabledKey
+import iad1tya.echo.music.constants.LiquidGlassNavBarEnabledKey
+import iad1tya.echo.music.constants.LiquidGlassTextColorKey
+import iad1tya.echo.music.ui.component.getAdaptiveGlassTextColor
 import iad1tya.echo.music.ui.screens.Screens
+import iad1tya.echo.music.ui.theme.DefaultThemeColor
+import iad1tya.echo.music.ui.theme.LocalPurpleTheme
+import iad1tya.echo.music.ui.theme.PlayerColorExtractor
+import iad1tya.echo.music.utils.rememberPreference
 
 @Composable
 fun FloatingNavigationToolbar(
@@ -97,6 +106,18 @@ fun FloatingNavigationToolbar(
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
     val toolbarContainerColor = floatingToolbarContainerColor(pureBlack = pureBlack)
+    val (liquidGlassEnabled) = rememberPreference(LiquidGlassEnabledKey, defaultValue = false)
+    val (glassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+    val (glassBlurRadius) = rememberPreference(LiquidGlassBlurRadiusKey, defaultValue = 25f)
+    
+    val toolbarModifier = modifier
+        .fillMaxWidth()
+        .then(
+            if (liquidGlassEnabled && glassNavBarEnabled) {
+                Modifier.blur(glassBlurRadius.dp)
+            } else Modifier
+        )
+
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
         toolbarContainerColor = toolbarContainerColor,
     )
@@ -104,7 +125,7 @@ fun FloatingNavigationToolbar(
     val hasFabAction = onFabClick != null && fabIconRes != null
 
     BoxWithConstraints(
-        modifier = modifier.fillMaxWidth(),
+        modifier = toolbarModifier,
         contentAlignment = Alignment.Center,
     ) {
         val showSelectedLabels = false
@@ -195,6 +216,7 @@ private fun ToolbarItemsContainer(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit
 ) {
+    val isPurple = LocalPurpleTheme.current
     val density = LocalDensity.current
     val itemWidths = remember { mutableStateMapOf<Screens, Dp>() }
     val itemPositions = remember { mutableStateMapOf<Screens, Dp>() }
@@ -224,8 +246,23 @@ private fun ToolbarItemsContainer(
     Box(modifier = Modifier.height(IntrinsicSize.Min)) {
         Box(modifier = Modifier.matchParentSize()) {
             if (targetWidth > 0.dp) {
-                Box(
-                    modifier = Modifier
+                val modifier = if (isPurple) {
+                    Modifier
+                        .offset(x = slidingPillOffset)
+                        .width(slidingPillWidth)
+                        .fillMaxHeight()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFF8B5CF6).copy(alpha = 0.25f),
+                                    Color(0xFF8B5CF6).copy(alpha = 0.15f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .border(0.5.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                } else {
+                    Modifier
                         .offset(x = slidingPillOffset)
                         .width(slidingPillWidth)
                         .fillMaxHeight()
@@ -233,7 +270,8 @@ private fun ToolbarItemsContainer(
                             color = floatingToolbarSelectedItemContainerColor(pureBlack),
                             shape = RoundedCornerShape(24.dp)
                         )
-                )
+                }
+                Box(modifier = modifier)
             }
         }
 
@@ -510,6 +548,13 @@ private fun FloatingNavigationToolbarItem(
 
 @Composable
 private fun floatingToolbarContainerColor(pureBlack: Boolean): Color {
+    val (liquidGlassEnabled) = rememberPreference(LiquidGlassEnabledKey, defaultValue = false)
+    val (glassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+    
+    if (liquidGlassEnabled && glassNavBarEnabled) {
+        return Color.White.copy(alpha = 0.05f)
+    }
+
     return if (pureBlack) {
         Color.Black
     } else {
@@ -519,28 +564,44 @@ private fun floatingToolbarContainerColor(pureBlack: Boolean): Color {
 
 @Composable
 private fun floatingToolbarFabContainerColor(pureBlack: Boolean): Color {
-    return MaterialTheme.colorScheme.primaryContainer
+    return if (LocalPurpleTheme.current) Color(0xFF8B5CF6) else MaterialTheme.colorScheme.primaryContainer
 }
 
 @Composable
 private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color {
-    return MaterialTheme.colorScheme.onPrimaryContainer
+    return if (LocalPurpleTheme.current) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
 }
 
 @Composable
 private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color {
-    return MaterialTheme.colorScheme.secondaryContainer
+    return if (LocalPurpleTheme.current) Color(0xFF8B5CF6).copy(alpha = 0.2f) else MaterialTheme.colorScheme.secondaryContainer
 }
 
 @Composable
 private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color {
-    return MaterialTheme.colorScheme.onSecondaryContainer
+    val (liquidGlassEnabled) = rememberPreference(LiquidGlassEnabledKey, defaultValue = false)
+    val (glassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+    val (customTextColor) = rememberPreference(LiquidGlassTextColorKey, defaultValue = -1)
+
+    if (liquidGlassEnabled && glassNavBarEnabled) {
+        return if (customTextColor != -1) Color(customTextColor) else Color.White
+    }
+
+    return if (LocalPurpleTheme.current) Color(0xFF8B5CF6) else MaterialTheme.colorScheme.onSecondaryContainer
 }
 
 
 @Composable
 private fun floatingToolbarItemContentColor(pureBlack: Boolean): Color {
-    return MaterialTheme.colorScheme.onSurfaceVariant
+    val (liquidGlassEnabled) = rememberPreference(LiquidGlassEnabledKey, defaultValue = false)
+    val (glassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+    val (customTextColor) = rememberPreference(LiquidGlassTextColorKey, defaultValue = -1)
+
+    if (liquidGlassEnabled && glassNavBarEnabled) {
+        return if (customTextColor != -1) Color(customTextColor).copy(alpha = 0.7f) else Color.White.copy(alpha = 0.7f)
+    }
+
+    return if (LocalPurpleTheme.current) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 @Composable

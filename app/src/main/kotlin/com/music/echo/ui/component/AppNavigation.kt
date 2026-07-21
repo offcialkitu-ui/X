@@ -26,8 +26,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import iad1tya.echo.music.ui.screens.Screens
-import iad1tya.echo.music.ui.component.LocalGlassEffectConfig
-import iad1tya.echo.music.ui.component.liquidGlass
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
@@ -38,7 +36,7 @@ private data class NavItemState(
 )
 
 @Stable
-fun isRouteSelected(currentRoute: String?, screenRoute: String, navigationItems: List<Screens>): Boolean {
+private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigationItems: List<Screens>): Boolean {
     if (currentRoute == null) return false
     if (currentRoute == screenRoute) return true
     return navigationItems.any { it.route == screenRoute } && 
@@ -131,23 +129,15 @@ fun AppNavigationBar(
     modifier: Modifier = Modifier,
     pureBlack: Boolean = false,
     slimNav: Boolean = false,
-    glassEnabled: Boolean = false,
     onSearchLongClick: (() -> Unit)? = null
 ) {
-    val glassConfig = LocalGlassEffectConfig.current
-    val containerColor = if (glassEnabled && glassConfig.globalEnabled && glassConfig.navBarEnabled) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-    val contentColor = if (glassEnabled && glassConfig.globalEnabled && glassConfig.navBarEnabled) glassConfig.textColor else if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+    val contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     val haptics = LocalHapticFeedback.current
     val viewConfiguration = LocalViewConfiguration.current
     
-    val navModifier = if (glassEnabled && glassConfig.globalEnabled && glassConfig.navBarEnabled) {
-        modifier.liquidGlass(config = glassConfig)
-    } else {
-        modifier
-    }
-    
     NavigationBar(
-        modifier = navModifier,
+        modifier = modifier,
         containerColor = containerColor,
         contentColor = contentColor
     ) {

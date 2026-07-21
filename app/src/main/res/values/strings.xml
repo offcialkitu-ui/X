@@ -3,7 +3,7 @@
 <!-- Upstream InnerTune strings -->
 <!-- Do not add new features here -->
 <!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "echomusic" -->
+<!-- "InnerTune" is replaced with "MelodyX" -->
 <!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 
 <resources>
@@ -178,9 +178,6 @@
     <string name="create_playlist">Create playlist</string>
     <string name="playlist_name">Playlist name</string>
     <string name="error_playlist_name_empty">Playlist name cannot be empty.</string>
-    <string name="modify_with_ai">Modify with AI</string>
-    <string name="modify_with_ai_desc">Modify playlist using AI instructions</string>
-    <string name="ai_modify_prompt_hint">e.g., Remove sad songs, add some 90s hits</string>
 
     <string name="edit_artist">Edit artist</string>
     <string name="artist_name">Artist name</string>
@@ -262,7 +259,7 @@
     <string name="queue_searched_songs">Searched songs</string>
 
     <!-- Notification name -->
-    <string name="music_player">Music Player</string>
+    <string name="music_player">MelodyX Player</string>
 
     <!-- Settings -->
     <string name="settings">Settings</string>
@@ -292,9 +289,7 @@
     <string name="apple_music">Apple Music</string>
     <string name="squiggly">Squiggly</string>
     <string name="misc">Misc</string>
-    <string name="enable_haptics">Enable haptics</string>
-    <string name="enable_haptics_desc">Provide haptic feedback while scrolling, clicking, and interacting with the app</string>
-
+    
     <string name="activity_history">Listening Summary</string>
     <string name="total_listening_time">Total Listening Time</string>
     <string name="unique_songs">Unique Songs</string>
@@ -389,7 +384,7 @@
     <string name="restore_failed">Failed to restore backup</string>
 
     <string name="discord_integration">Discord Integration</string>
-    <string name="discord_information">echomusic uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.\n\echomusic will only extract your token, and everything else is stored locally.</string>
+    <string name="discord_information">MelodyX uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.\n\nMelodyX will only extract your token, and everything else is stored locally.</string>
     <string name="dismiss">Dismiss</string>
     <string name="options">Options</string>
     <string name="preview">Preview</string>
@@ -417,7 +412,7 @@
     <string name="listen_together_smart_resync">Smart Network Resync</string>
     <string name="listen_together_smart_resync_desc">Automatically catch up with the host after a connection drop</string>
     <string name="spotify_import_title">Import From Spotify</string>
-    <string name="spotify_import_desc">Connect Spotify, choose playlists, and mirror them into local Echo Music playlists.</string>
+    <string name="spotify_import_desc">Connect Spotify, choose playlists, and mirror them into local MelodyX playlists.</string>
     <string name="spotify_connect">Connect Spotify</string>
     <string name="spotify_refresh">Refresh Spotify library</string>
     <string name="spotify_select_sources">Select Spotify playlists</string>
@@ -462,68 +457,40 @@
     <string name="recognition_notification_processing">Identifying…</string>
     <string name="recognition_notification_no_match">No match found</string>
     <string name="recognition_notification_failed">Recognition failed</string>
-    <string name="listen_on_echo_music">Listen on Echo Music</string>
+    <string name="listen_on_echo_music">Listen on MelodyX</string>
     <string name="qs_tile_music_recognizer">Recognize music</string>
+    <string name="echo_brain_beta">Melody Brain (Beta)</string>
+    <string name="echo_brain_enable">Enable Melody Brain</string>
+    <string name="echo_brain_enable_desc">Automatically inject AI recommendations based on your listening habits</string>
+    <string name="echo_brain_profile_statistics">Melody Brain Statistics</string>
+    <string name="echo_brain_learning_level">Learning Level</string>
+    <string name="echo_brain_initiate">Initiate</string>
+    <string name="echo_brain_total_interactions">Total Interactions</string>
+    <string name="echo_brain_interactions_tracked">%1$d interactions tracked</string>
+    <string name="echo_brain_discovered_genres">Discovered Genres</string>
+    <string name="echo_brain_distinct_genres_identified">%1$d distinct genres identified</string>
+    <string name="echo_brain_analyzed_artists">Analyzed Artists</string>
+    <string name="echo_brain_artists_mapped">%1$d artists mapped</string>
+    <string name="echo_brain_data_management">Data Management</string>
+    <string name="echo_brain_export_profile">Export Profile</string>
+    <string name="echo_brain_export_profile_desc">Save your neural map to a file</string>
+    <string name="echo_brain_import_profile">Import Profile</string>
+    <string name="echo_brain_import_profile_desc">Load a previously saved neural map</string>
+    <string name="echo_brain_reset_profile">Reset Profile</string>
+    <string name="echo_brain_reset_profile_desc">Erase all learned data and start over</string>
+    <string name="echo_brain_reset_neural_profile">Reset Melody Brain Profile</string>
+    <string name="echo_brain_reset_neural_profile_desc">This will permanently delete all learned preferences. The engine will start learning from scratch.</string>
+    <string name="echo_brain_profile_exported_successfully">Profile exported successfully</string>
+    <string name="echo_brain_export_failed">Export failed</string>
+    <string name="echo_brain_profile_imported_successfully">Profile imported successfully</string>
+    <string name="echo_brain_import_failed_invalid_file">Import failed — invalid file</string>
     <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Automatically submit your listened tracks to ListenBrainz</string>
     <string name="export_directory_unavailable">Unable to access an export directory on this device. Please set one manually.</string>
     <string name="set_listenbrainz_token">Set ListenBrainz Token</string>
 
-    <!-- Echo Extractor Settings -->
-    <string name="youtube_decryption_settings">Echo Extractor</string>
-    <string name="youtube_decryption_desc">Configure extractor settings</string>
-    <string name="youtube_decryption_support">Echo Extractor</string>
-    <string name="youtube_decryption_support_desc">Automatically extracts YouTube playback configurations. Locked to Active.</string>
-    <string name="force_update_cipher">Force Update Configurations</string>
-    <string name="force_update_cipher_desc">Download the latest extractor override mappings. Limited to 3 updates per day.</string>
-    <string name="youtube_decryption_info">Extractor mappings are fetched dynamically from your self-hosted node. The countdown at the top displays the time remaining until the next automatic synchronization check. If manual updates are requested more than 3 times, they are blocked for 1 day.</string>
-    <string name="last_updated">Last updated</string>
-    <string name="last_updated_never">Never</string>
-    <string name="cipher_update_success">Extractor mappings updated! Loaded %d players.</string>
-    <string name="cipher_update_failed">Failed to update extractor mappings: %s</string>
-    <string name="cipher_updating">Updating extractor configurations…</string>
-    <string name="hours_label">Hours</string>
-    <string name="minutes_label">Minutes</string>
-    <string name="seconds_label">Seconds</string>
+    <!-- Widget -->
+    <string name="widget_time_zero">0:00</string>
+    <string name="widget_shuffle">Shuffle</string>
 
-    <!-- Liquid Glass Effects -->
-    <string name="liquid_glass">Liquid Glass (Beta)</string>
-    <string name="player_background_liquid_glass">Liquid Glass</string>
-    <string name="liquid_glass_settings">Liquid Glass (Beta)</string>
-    <string name="liquid_glass_global_enabled">Enable Liquid Glass</string>
-    <string name="liquid_glass_effects">Effects</string>
-    <string name="liquid_glass_appearance">Appearance</string>
-    <string name="liquid_glass_per_component">Per Component</string>
-    <string name="liquid_glass_vibrancy">Vibrancy</string>
-    <string name="liquid_glass_vibrancy_desc">Boost saturation of the glass backdrop</string>
-    <string name="liquid_glass_blur_radius">Blur Radius</string>
-    <string name="liquid_glass_blur_radius_desc">Amount of blur on the glass surface</string>
-    <string name="liquid_glass_lens_height">Lens Refraction Height</string>
-    <string name="liquid_glass_lens_amount">Lens Refraction Amount</string>
-    <string name="liquid_glass_chromatic_aberration">Chromatic Aberration</string>
-    <string name="liquid_glass_depth_effect">Depth Effect</string>
-    <string name="liquid_glass_surface_opacity">Surface Opacity</string>
-    <string name="liquid_glass_surface_opacity_desc">Opacity of the glass tint overlay for readability</string>
-    <string name="liquid_glass_surface_tint">Surface Tint</string>
-    <string name="liquid_glass_surface_tint_desc">Tint color applied to the glass surface</string>
-    <string name="liquid_glass_text_color">Glass Text Color</string>
-    <string name="liquid_glass_text_color_desc">Text color used on glass surfaces</string>
-    <string name="liquid_glass_player">Glass Player</string>
-    <string name="liquid_glass_mini_player">Glass Mini Player</string>
-    <string name="liquid_glass_nav_bar">Glass Navigation Bar</string>
-    <string name="nav_bar_style">Navigation Bar Style</string>
-    <string name="floating_nav_bar">Floating navigation bar</string>
-    <string name="floating_nav_bar_desc">iOS style floating tab bar that shrinks while scrolling</string>
-    <string name="liquid_glass_performance_warning">Rendering liquid glass is performance heavy and may reduce smoothness and battery life on some devices</string>
-    <string name="liquid_glass_requires_floating_nav_bar">Requires the floating navigation bar to be enabled</string>
-    <string name="color_picker_hex">Hex</string>
-    <string name="color_white">White</string>
-    <string name="color_light_gray">Light Gray</string>
-    <string name="color_black">Black</string>
-    <string name="ai_auto_translate">Auto Translate</string>
-    <string name="ai_auto_translate_desc">Automatically translate lyrics when available</string>
-    <string name="lyrics_translation_menu">Lyrics Translation</string>
-    <string name="ai_recommendations">AI Recommendations</string>
-    <string name="ai_recommendations_desc">Daily update of a custom playlist based on your taste</string>
-    <string name="ai_recommendations_refresh">Refresh Recommendations</string>
 </resources>

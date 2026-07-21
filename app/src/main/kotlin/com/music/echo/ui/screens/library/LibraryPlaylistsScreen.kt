@@ -211,6 +211,21 @@ fun LibraryPlaylistsScreen(
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
     }
+
+    var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(
+            onDismiss = { showCreatePlaylistDialog = false },
+            initialTextFieldValue = initialTextFieldValue,
+            allowSyncing = allowSyncing,
+            onPlaylistCreated = { playlistId ->
+                showCreatePlaylistDialog = false
+                navController.navigate("local_playlist/$playlistId")
+            }
+        )
+    }
+
     val headerContent = @Composable {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -367,6 +382,14 @@ fun LibraryPlaylistsScreen(
                         }
                     }
                 }
+
+                HideOnScrollFAB(
+                    lazyListState = lazyListState,
+                    icon = R.drawable.add,
+                    onClick = {
+                        showCreatePlaylistDialog = true
+                    },
+                )
             }
 
             LibraryViewType.GRID -> {
@@ -493,6 +516,14 @@ fun LibraryPlaylistsScreen(
                         }
                     }
                 }
+
+                HideOnScrollFAB(
+                    lazyListState = lazyGridState,
+                    icon = R.drawable.add,
+                    onClick = {
+                        showCreatePlaylistDialog = true
+                    },
+                )
             }
         }
     }

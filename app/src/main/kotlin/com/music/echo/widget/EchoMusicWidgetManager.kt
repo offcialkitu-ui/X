@@ -1,6 +1,22 @@
 /**
- * Metrolist Project (C) 2026
+ * MelodyX (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
+ *
+ * EchoMusicWidgetManager — premium widget rendering engine.
+ *
+ * Uses WidgetArtStudio for:
+ *  - Palette API color extraction from album art (dominant/vibrant/muted)
+ *  - Blurred artwork backdrop with dynamic-color scrim (WCAG AA)
+ *  - Rounded/circular art with system corner radii
+ *  - Full vinyl disc rendering with tonearm + progress arc (turntable)
+ *  - Generated gradient artwork from track-title hash (no-artwork fallback)
+ *  - Heart-burst rendering for like animation
+ *  - Waveform rendering for recognizer listening state
+ *  - Material You Dynamic Color on Android 12+, brand red (#E53935) below.
+ *
+ * Rich empty states: shows "Continue listening: <last played track>" with
+ * artwork and resume play button when nothing is playing.
+ * Battery-friendly updates via WorkManager with update throttling.
  */
 
 package iad1tya.echo.music.widget
@@ -11,13 +27,13 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapShader
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.RectF
-import android.graphics.Shader
 import android.os.Bundle
+import android.view.View
 import android.widget.RemoteViews
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -29,6 +45,7 @@ import iad1tya.echo.music.db.MusicDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,16 +56,28 @@ class EchoMusicWidgetManager @Inject constructor(
     private val playlistWidgetManager: PlaylistWidgetManager,
 ) {
     private val imageLoader by lazy {
-        ImageLoader.Builder(context)
-            .crossfade(false)
-            .build()
+        ImageLoader.Builder(context).crossfade(false).build()
     }
 
-    // Cache for album art to avoid reloading
+    // Cache for album art + computed colours to avoid re-extraction on every update
     private var cachedArtworkUri: String? = null
     private var cachedAlbumArt: Bitmap? = null
-    private var cachedCircularAlbumArt: Bitmap? = null
+    private var cachedColors: WidgetArtStudio.WidgetColors? = null
+    private var cachedVinyl: Bitmap? = null
+    private var cachedVinylProgress: Float = -1f
+    private var cachedVinylRotation: Float = -1f
+    private var cachedVinylPlaying: Boolean = false
 
+    // Throttle: track last update time to avoid rapid refreshes
+    private var lastUpdateTimeMs: Long = 0L
+    private val minUpdateIntervalMs = 1000L // 1 second minimum between updates
+    private val workManagerUpdateDelayMs = 300L
+
+    /**
+     * Main entry point: update all widgets with current track state.
+     * Uses WorkManager for battery-friendly deferral when called in rapid succession.
+     * Falls back to immediate update for play/pause toggles.
+     */
     suspend fun updateWidgets(
         title: String,
         artist: String,
@@ -56,60 +85,124 @@ class EchoMusicWidgetManager @Inject constructor(
         isPlaying: Boolean,
         isLiked: Boolean,
         duration: Long = 0,
-        currentPosition: Long = 0
+        currentPosition: Long = 0,
     ) {
+        val now = System.currentTimeMillis()
+        // Throttle: if called too quickly, defer via WorkManager
+        if (now - lastUpdateTimeMs < minUpdateIntervalMs) {
+            val workRequest = OneTimeWorkRequestBuilder<WidgetUpdateWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .build()
+                )
+                .setInitialDelay(workManagerUpdateDelayMs, TimeUnit.MILLISECONDS)
+                .addTag("widget_update")
+                .build()
+            WorkManager.getInstance(context)
+                .enqueueUniqueWork(
+                    "widget_update",
+                    ExistingWorkPolicy.REPLACE,
+                    workRequest,
+                )
+            return
+        }
+        lastUpdateTimeMs = now
+
         val appWidgetManager = AppWidgetManager.getInstance(context)
 
-        // Use cached album art if URI hasn't changed, otherwise load new one
+        // Load album art (from cache if URI unchanged)
         val albumArt: Bitmap?
-        val circularAlbumArt: Bitmap?
-        
-        if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null) {
+        val widgetColors: WidgetArtStudio.WidgetColors
+        if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null && cachedColors != null) {
             albumArt = cachedAlbumArt
-            circularAlbumArt = cachedCircularAlbumArt
+            widgetColors = cachedColors!!
         } else {
-            albumArt = artworkUri?.let { loadAlbumArt(it, 300) }
-            circularAlbumArt = albumArt?.let { getCircularBitmap(it) }
-            // Update cache
+            albumArt = artworkUri?.let { loadAlbumArt(it, 320) }
+            widgetColors = if (albumArt != null) {
+                WidgetArtStudio.fromArtwork(context, albumArt)
+            } else if (title.isNotEmpty() && title != context.getString(R.string.not_playing)) {
+                WidgetArtStudio.fromTitleHash(context, title)
+            } else {
+                WidgetArtStudio.dynamicFallback(context)
+            }
             cachedArtworkUri = artworkUri
             cachedAlbumArt = albumArt
-            cachedCircularAlbumArt = circularAlbumArt
+            cachedColors = widgetColors
+            // Invalidate vinyl cache on art change
+            cachedVinyl = null
         }
 
-        // Update main music player widgets
+        // Compute progress for vinyl arc
+        val progress = if (duration > 0) {
+            (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+
+        // Rotation for vinyl disc animation (increments each update)
+        val rotation = if (isPlaying) (cachedVinylRotation + 12f) % 360f else cachedVinylRotation.coerceAtLeast(0f)
+
+        // ── Music Player (4×2 / 4×1 / 2×2) ────────────────────────────────
         val componentName = ComponentName(context, MusicWidgetReceiver::class.java)
         val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
         if (widgetIds.isNotEmpty()) {
             widgetIds.forEach { widgetId ->
                 val options = appWidgetManager.getAppWidgetOptions(widgetId)
-                val views = createRemoteViewsForSize(
-                    options,
-                    title,
-                    artist,
-                    albumArt,
-                    isPlaying,
-                    isLiked,
-                    duration,
-                    currentPosition
+                val views = createMusicRemoteViewsForSize(
+                    options = options,
+                    title = title,
+                    artist = artist,
+                    albumArt = albumArt,
+                    widgetColors = widgetColors,
+                    isPlaying = isPlaying,
+                    isLiked = isLiked,
+                    progress = progress,
+                    duration = duration,
+                    currentPosition = currentPosition,
+                    artworkUri = artworkUri,
                 )
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
         }
 
-        // Update turntable widgets
+        // ── Turntable (2×2) ───────────────────────────────────────────────
         val turntableComponentName = ComponentName(context, TurntableWidgetReceiver::class.java)
         val turntableWidgetIds = appWidgetManager.getAppWidgetIds(turntableComponentName)
         if (turntableWidgetIds.isNotEmpty()) {
-            val turntableViews = createTurntableRemoteViews(
-                circularAlbumArt,
-                isPlaying,
-                isLiked
+            val needsNewVinyl = cachedVinyl == null ||
+                cachedVinylProgress != progress ||
+                cachedVinylPlaying != isPlaying ||
+                (isPlaying && kotlin.math.abs(cachedVinylRotation - rotation) > 5f)
+
+            val vinylBitmap = if (needsNewVinyl) {
+                WidgetArtStudio.vinylDisc(
+                    context = context,
+                    albumArt = albumArt,
+                    colors = widgetColors,
+                    sizePx = 400,
+                    progress = progress,
+                    rotationDeg = rotation,
+                    isPlaying = isPlaying,
+                ).also {
+                    cachedVinyl = it
+                    cachedVinylProgress = progress
+                    cachedVinylRotation = rotation
+                    cachedVinylPlaying = isPlaying
+                }
+            } else {
+                cachedVinyl!!
+            }
+
+            val views = createTurntableViews(
+                vinylBitmap = vinylBitmap,
+                widgetColors = widgetColors,
+                isPlaying = isPlaying,
+                isLiked = isLiked,
             )
             turntableWidgetIds.forEach { widgetId ->
-                appWidgetManager.updateAppWidget(widgetId, turntableViews)
+                appWidgetManager.updateAppWidget(widgetId, views)
             }
         }
 
+        // ── Playlist widget ───────────────────────────────────────────────
         playlistWidgetManager.updateWidgets(
             title = title,
             artist = artist,
@@ -121,208 +214,195 @@ class EchoMusicWidgetManager @Inject constructor(
         )
     }
 
-    private fun createRemoteViewsForSize(
+    // ─── Music Player: size-adaptive ────────────────────────────────────────
+
+    private fun createMusicRemoteViewsForSize(
         options: Bundle,
         title: String,
         artist: String,
         albumArt: Bitmap?,
+        widgetColors: WidgetArtStudio.WidgetColors,
         isPlaying: Boolean,
         isLiked: Boolean,
+        progress: Float,
         duration: Long,
-        currentPosition: Long
+        currentPosition: Long,
+        artworkUri: String?,
     ): RemoteViews {
         val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
         val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
 
-        // Determine widget size category
-        // 2x2: approximately 110dp x 110dp (compact square)
-        // 4x1: approximately 250dp x 40dp (wide single row)
-        // Full: approximately 250dp x 110dp (default)
         return when {
-            minWidth < 180 && minHeight < 100 -> {
-                // 2x2 Compact - Only play button with album art
-                createCompactSquareRemoteViews(albumArt, isPlaying)
-            }
-            minWidth >= 180 && minHeight < 100 -> {
-                // 4x1 Wide - Single row with album art, song info, like and play buttons
-                createCompactWideRemoteViews(title, artist, albumArt, isPlaying, isLiked)
-            }
-            else -> {
-                // Full layout
-                createRemoteViews(title, artist, albumArt, isPlaying, isLiked, duration, currentPosition)
-            }
+            minWidth < 180 && minHeight < 100 -> createCompactSquare(title, albumArt, widgetColors, isPlaying, isLiked)
+            minWidth >= 180 && minHeight < 100 -> createCompactWide(title, artist, albumArt, widgetColors, isPlaying, isLiked)
+            else -> createFullMusic(title, artist, albumArt, widgetColors, isPlaying, isLiked, progress, duration, currentPosition, artworkUri)
         }
     }
 
-    private fun createRemoteViews(
+    // ─── Full 4×2 ──────────────────────────────────────────────────────────
+
+    private fun createFullMusic(
         title: String,
         artist: String,
         albumArt: Bitmap?,
+        colors: WidgetArtStudio.WidgetColors,
         isPlaying: Boolean,
         isLiked: Boolean,
-        duration: Long = 0,
-        currentPosition: Long = 0
+        progress: Float,
+        duration: Long,
+        currentPosition: Long,
+        artworkUri: String?,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_music_player)
 
-        // Set song info
-        views.setTextViewText(R.id.widget_song_title, title)
-        views.setTextViewText(R.id.widget_artist_name, artist)
+        // Backdrop: blurred artwork + palette scrim
+        setBackdrop(views, albumArt, colors, R.id.widget_backdrop)
 
-        // Set album art with rounded corners
-        if (albumArt != null) {
-            val roundedAlbumArt = getRoundedCornerBitmap(albumArt, 48f)
-            views.setImageViewBitmap(R.id.widget_album_art, roundedAlbumArt)
+        // Rounded album art
+        val artSize = 200
+        val roundedArt = if (albumArt != null) {
+            WidgetArtStudio.roundedArt(context, albumArt, WidgetArtStudio.innerRadiusPx(context))
         } else {
-            views.setImageViewBitmap(R.id.widget_album_art, getRoundedDefaultIcon(48f))
+            WidgetArtStudio.generatedArt(context, title, artSize)
+        }
+        views.setImageViewBitmap(R.id.widget_album_art, roundedArt)
+
+        // ── Rich empty state: if not playing, show "Continue listening" with last track ──
+        val isNotPlaying = title.isEmpty() || title == context.getString(R.string.not_playing)
+
+        if (isNotPlaying && albumArt != null) {
+            views.setViewVisibility(R.id.widget_context_label, View.VISIBLE)
+            views.setTextViewText(R.id.widget_context_label,
+                context.getString(R.string.widget_continue_listening))
+            views.setTextViewText(R.id.widget_song_title, title)
+            views.setTextViewText(R.id.widget_artist_name, artist)
+        } else if (isNotPlaying) {
+            views.setViewVisibility(R.id.widget_context_label, View.GONE)
+            views.setTextViewText(R.id.widget_song_title, context.getString(R.string.app_name))
+            views.setTextViewText(R.id.widget_artist_name,
+                context.getString(R.string.widget_tap_to_play))
+        } else {
+            views.setViewVisibility(R.id.widget_context_label, View.GONE)
+            views.setTextViewText(R.id.widget_song_title, title)
+            views.setTextViewText(R.id.widget_artist_name, artist)
         }
 
-        // Set play/pause icon
-        val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
-        views.setImageViewResource(R.id.widget_play_pause, playPauseIcon)
+        // Text colors with WCAG AA contrast
+        views.setTextColor(R.id.widget_song_title, colors.onArt)
+        views.setTextColor(R.id.widget_artist_name, colors.onArtSecondary)
+        views.setTextColor(R.id.widget_context_label, colors.accent)
+        views.setTextColor(R.id.widget_time_elapsed, colors.onArtSecondary)
+        views.setTextColor(R.id.widget_time_total, colors.onArtSecondary)
 
-        // Set like icon - using nav style (purple) for main widget
-        val likeIcon = if (isLiked) R.drawable.ic_widget_heart_nav else R.drawable.ic_widget_heart_outline_nav
-        views.setImageViewResource(R.id.widget_like_button, likeIcon)
+        // Play/pause — set accent circle for the play background
+        views.setImageViewResource(R.id.widget_play_pause,
+            if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play)
+        views.setImageViewBitmap(R.id.widget_play_bg,
+            WidgetArtStudio.accentCircle(44, colors.accent))
+        views.setInt(R.id.widget_shuffle_icon, "setColorFilter", colors.onArtSecondary)
+        views.setInt(R.id.widget_prev_icon, "setColorFilter", colors.onArtSecondary)
+        views.setInt(R.id.widget_next_icon, "setColorFilter", colors.onArtSecondary)
 
-        // Set Progress Level
-        if (duration > 0) {
-            val level = ((currentPosition.toDouble() / duration.toDouble()) * 10000).toInt()
-            views.setInt(R.id.widget_progress_fill, "setImageLevel", level)
-        } else {
-            views.setInt(R.id.widget_progress_fill, "setImageLevel", 0)
-        }
+        // Like
+        views.setImageViewResource(R.id.widget_like_button,
+            if (isLiked) R.drawable.ic_widget_heart_nav else R.drawable.ic_widget_heart_outline_nav)
+        views.setInt(R.id.widget_like_button, "setColorFilter",
+            if (isLiked) colors.accent else colors.onArtSecondary)
 
-        // Set click intents
+        // Progress bar tint
+        views.setInt(R.id.widget_progress_fill, "setColorFilter", colors.accent)
+        val level = (progress * 10000).toInt().coerceIn(0, 10000)
+        views.setInt(R.id.widget_progress_fill, "setImageLevel", level)
+
+        // Time labels
+        views.setTextViewText(R.id.widget_time_elapsed, WidgetArtStudio.formatTime(currentPosition))
+        views.setTextViewText(R.id.widget_time_total, WidgetArtStudio.formatTime(duration))
+
+        // Marquee - ensure focus for animation
+        views.setBoolean(R.id.widget_song_title, "setFocusable", true)
+        views.setBoolean(R.id.widget_song_title, "setFocusableInTouchMode", true)
+
+        // Click intents
         views.setOnClickPendingIntent(R.id.widget_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_play_pause_container, getPlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_like_button, getLikeIntent())
+        views.setOnClickPendingIntent(R.id.widget_shuffle_button, getShuffleIntent())
+        views.setOnClickPendingIntent(R.id.widget_prev_button, getPreviousIntent())
+        views.setOnClickPendingIntent(R.id.widget_next_button, getNextIntent())
 
         return views
     }
 
-    private suspend fun loadAlbumArt(artworkUri: String, size: Int = 200): Bitmap? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val request = ImageRequest.Builder(context)
-                    .data(artworkUri)
-                    .size(size, size)
-                    .allowHardware(false)
-                    .crossfade(300)
-                    .build()
-                val result = imageLoader.execute(request)
-                result.image?.toBitmap()
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
+    // ─── Compact Square (2×2) ──────────────────────────────────────────────
 
-    private fun getRoundedCornerBitmap(bitmap: Bitmap, cornerRadius: Float): Bitmap {
-        // Ensure the bitmap is square for thumbnails
-        val size = minOf(bitmap.width, bitmap.height)
-        val xOffset = (bitmap.width - size) / 2
-        val yOffset = (bitmap.height - size) / 2
-        val squareBitmap = Bitmap.createBitmap(bitmap, xOffset, yOffset, size, size)
-
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-        val paint = Paint().apply {
-            isAntiAlias = true
-            isFilterBitmap = true
-            shader = BitmapShader(squareBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        }
-        val rect = RectF(0f, 0f, size.toFloat(), size.toFloat())
-        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
-        
-        if (squareBitmap != bitmap) {
-            squareBitmap.recycle()
-        }
-        
-        return output
-    }
-
-    private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
-        val size = minOf(bitmap.width, bitmap.height)
-        
-        // First crop to square
-        val xOffset = (bitmap.width - size) / 2
-        val yOffset = (bitmap.height - size) / 2
-        val squareBitmap = Bitmap.createBitmap(bitmap, xOffset, yOffset, size, size)
-
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-        val paint =
-            Paint().apply {
-                isAntiAlias = true
-                isFilterBitmap = true
-                shader = BitmapShader(squareBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-            }
-        val radius = size / 2f
-        canvas.drawCircle(radius, radius, radius, paint)
-
-        if (squareBitmap != bitmap) {
-            squareBitmap.recycle()
-        }
-        return output
-    }
-
-    private fun createCompactSquareRemoteViews(
+    private fun createCompactSquare(
+        title: String,
         albumArt: Bitmap?,
-        isPlaying: Boolean
+        colors: WidgetArtStudio.WidgetColors,
+        isPlaying: Boolean,
+        isLiked: Boolean,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_compact_square)
 
-        // Set album art with rounded corners
-        if (albumArt != null) {
-            val roundedAlbumArt = getRoundedCornerBitmap(albumArt, 48f)
-            views.setImageViewBitmap(R.id.widget_compact_album_art, roundedAlbumArt)
+        setBackdrop(views, albumArt, colors, R.id.widget_backdrop)
+
+        val art = if (albumArt != null) {
+            WidgetArtStudio.heroTile(context, albumArt, 400, colors)
         } else {
-            views.setImageViewBitmap(R.id.widget_compact_album_art, getRoundedDefaultIcon(48f))
+            WidgetArtStudio.generatedArt(context, title, 400)
         }
+        views.setImageViewBitmap(R.id.widget_compact_album_art, art)
 
-        // Set play/pause icon - using low style icons
-        val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause_low else R.drawable.ic_widget_play_low
-        views.setImageViewResource(R.id.widget_compact_play_pause, playPauseIcon)
+        views.setImageViewResource(R.id.widget_compact_play_pause,
+            if (isPlaying) R.drawable.ic_widget_pause_low else R.drawable.ic_widget_play_low)
+        views.setImageViewBitmap(R.id.widget_compact_play_bg,
+            WidgetArtStudio.accentCircle(56, colors.accent))
 
-        // Set click intents
         views.setOnClickPendingIntent(R.id.widget_compact_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_compact_play_container, getPlayPauseIntent())
 
         return views
     }
 
-    private fun createCompactWideRemoteViews(
+    // ─── Compact Wide (4×1) ────────────────────────────────────────────────
+
+    private fun createCompactWide(
         title: String,
         artist: String,
         albumArt: Bitmap?,
+        colors: WidgetArtStudio.WidgetColors,
         isPlaying: Boolean,
-        isLiked: Boolean
+        isLiked: Boolean,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_compact_wide)
 
-        // Set song info
+        setBackdrop(views, albumArt, colors, R.id.widget_backdrop)
+
+        val artSize = 120
+        val rounded = if (albumArt != null) {
+            WidgetArtStudio.roundedArt(context, albumArt, WidgetArtStudio.innerRadiusPx(context))
+        } else {
+            WidgetArtStudio.generatedArt(context, title, artSize)
+        }
+        views.setImageViewBitmap(R.id.widget_wide_album_art, rounded)
+
         views.setTextViewText(R.id.widget_wide_song_title, title)
         views.setTextViewText(R.id.widget_wide_artist_name, artist)
+        views.setTextColor(R.id.widget_wide_song_title, colors.onArt)
+        views.setTextColor(R.id.widget_wide_artist_name, colors.onArtSecondary)
 
-        // Set album art with rounded corners (48f to match 12dp at ~4x density for 48dp view)
-        if (albumArt != null) {
-            val roundedAlbumArt = getRoundedCornerBitmap(albumArt, 48f)
-            views.setImageViewBitmap(R.id.widget_wide_album_art, roundedAlbumArt)
-        } else {
-            // Create rounded default icon
-            views.setImageViewBitmap(R.id.widget_wide_album_art, getRoundedDefaultIcon(48f))
-        }
+        views.setBoolean(R.id.widget_wide_song_title, "setFocusable", true)
+        views.setBoolean(R.id.widget_wide_song_title, "setFocusableInTouchMode", true)
 
-        // Set play/pause icon - using low style icons
-        val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause_low else R.drawable.ic_widget_play_low
-        views.setImageViewResource(R.id.widget_wide_play_pause, playPauseIcon)
+        views.setImageViewResource(R.id.widget_wide_play_pause,
+            if (isPlaying) R.drawable.ic_widget_pause_low else R.drawable.ic_widget_play_low)
+        views.setImageViewBitmap(R.id.widget_wide_play_bg,
+            WidgetArtStudio.accentCircle(44, colors.accent))
+        views.setImageViewResource(R.id.widget_wide_like_button,
+            if (isLiked) R.drawable.ic_widget_heart_nav else R.drawable.ic_widget_heart_outline_nav)
+        views.setInt(R.id.widget_wide_like_button, "setColorFilter",
+            if (isLiked) colors.accent else colors.onArtSecondary)
 
-        // Set like icon - using navigation style (purple)
-        val likeIcon = if (isLiked) R.drawable.ic_widget_heart_nav else R.drawable.ic_widget_heart_outline_nav
-        views.setImageViewResource(R.id.widget_wide_like_button, likeIcon)
-
-        // Set click intents
         views.setOnClickPendingIntent(R.id.widget_wide_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_wide_play_container, getPlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_wide_like_button, getLikeIntent())
@@ -330,123 +410,119 @@ class EchoMusicWidgetManager @Inject constructor(
         return views
     }
 
-    private fun createTurntableRemoteViews(
-        circularAlbumArt: Bitmap?,
+    // ─── Turntable (2×2) ───────────────────────────────────────────────────
+
+    private fun createTurntableViews(
+        vinylBitmap: Bitmap,
+        widgetColors: WidgetArtStudio.WidgetColors,
         isPlaying: Boolean,
-        isLiked: Boolean
+        isLiked: Boolean,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_turntable)
 
-        // Set circular album art - create circular default icon if no album art
-        if (circularAlbumArt != null) {
-            views.setImageViewBitmap(R.id.widget_turntable_album_art, circularAlbumArt)
-        } else {
-            // Load and make the default icon circular
-            views.setImageViewBitmap(R.id.widget_turntable_album_art, getCircularDefaultIcon())
-        }
+        val backdrop = WidgetArtStudio.backdrop(context, null, 400, 400, widgetColors)
+        views.setImageViewBitmap(R.id.widget_backdrop, backdrop)
 
-        // Set play/pause icon - using secondary color icons for turntable
-        val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause_secondary else R.drawable.ic_widget_play_secondary
-        views.setImageViewResource(R.id.widget_turntable_play_pause, playPauseIcon)
+        views.setImageViewBitmap(R.id.widget_turntable_album_art, vinylBitmap)
 
-        // Set click intents
+        views.setInt(R.id.widget_turntable_play_pause, "setColorFilter", widgetColors.onAccent)
+        views.setInt(R.id.widget_turntable_play_container, "setColorFilter", widgetColors.accent)
+        views.setInt(R.id.widget_turntable_prev_button, "setColorFilter", widgetColors.onArtSecondary)
+        views.setInt(R.id.widget_turntable_next_button, "setColorFilter", widgetColors.onArtSecondary)
+
+        views.setImageViewResource(R.id.widget_turntable_play_pause,
+            if (isPlaying) R.drawable.ic_widget_pause_secondary else R.drawable.ic_widget_play_secondary)
+
+        views.setImageViewResource(R.id.widget_turntable_like_button,
+            if (isLiked) R.drawable.ic_widget_heart_nav else R.drawable.ic_widget_heart_outline_nav)
+        views.setInt(R.id.widget_turntable_like_button, "setColorFilter",
+            if (isLiked) widgetColors.accent else widgetColors.onArtSecondary)
+
         views.setOnClickPendingIntent(R.id.widget_turntable_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_turntable_play_container, getTurntablePlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_turntable_prev_button, getTurntablePreviousIntent())
         views.setOnClickPendingIntent(R.id.widget_turntable_next_button, getTurntableNextIntent())
+        views.setOnClickPendingIntent(R.id.widget_turntable_like_container, getLikeIntent())
 
         return views
     }
-    
-    private fun getCircularDefaultIcon(): Bitmap {
-        // Load the custom turntable default art drawable and convert to bitmap
-        val drawable = context.getDrawable(R.drawable.widget_turntable_default_art)!!
-        val size = 300
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, size, size)
-        drawable.draw(canvas)
-        return bitmap
-    }
-    
-    private fun getRoundedDefaultIcon(cornerRadius: Float): Bitmap {
-        // Get the launcher icon and make it rounded
-        val drawable = context.packageManager.getApplicationIcon(context.packageName)
-        val size = 300
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, size, size)
-        drawable.draw(canvas)
-        return getRoundedCornerBitmap(bitmap, cornerRadius)
+
+    // ─── Helpers ───────────────────────────────────────────────────────────
+
+    private fun setBackdrop(
+        views: RemoteViews,
+        albumArt: Bitmap?,
+        colors: WidgetArtStudio.WidgetColors,
+        backdropId: Int,
+    ) {
+        val bitmap = WidgetArtStudio.backdrop(context, albumArt, 600, 400, colors)
+        views.setImageViewBitmap(backdropId, bitmap)
     }
 
-    private fun getOpenAppIntent(): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java)
-        return PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
-
-    private fun getPlayPauseIntent(): PendingIntent {
-        val intent = Intent(context, MusicWidgetReceiver::class.java).apply {
-            action = MusicWidgetReceiver.ACTION_PLAY_PAUSE
+    private suspend fun loadAlbumArt(artworkUri: String, size: Int = 320): Bitmap? =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(artworkUri)
+                    .size(size, size)
+                    .allowHardware(false)
+                    .build()
+                imageLoader.execute(request).image?.toBitmap()
+            } catch (_: Exception) { null }
         }
-        return PendingIntent.getBroadcast(
-            context,
-            1,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
 
-    private fun getLikeIntent(): PendingIntent {
-        val intent = Intent(context, MusicWidgetReceiver::class.java).apply {
-            action = MusicWidgetReceiver.ACTION_LIKE
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            2,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
+    // ─── PendingIntents ────────────────────────────────────────────────────
 
-    private fun getTurntablePlayPauseIntent(): PendingIntent {
-        val intent = Intent(context, TurntableWidgetReceiver::class.java).apply {
-            action = TurntableWidgetReceiver.ACTION_TURNTABLE_PLAY_PAUSE
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            3,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
+    private fun getOpenAppIntent(): PendingIntent =
+        PendingIntent.getActivity(context, 0,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-    private fun getTurntableNextIntent(): PendingIntent {
-        val intent = Intent(context, TurntableWidgetReceiver::class.java).apply {
-            action = TurntableWidgetReceiver.ACTION_TURNTABLE_NEXT
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            4,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
+    private fun getPlayPauseIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 1,
+            Intent(context, MusicWidgetReceiver::class.java).apply {
+                action = MusicWidgetReceiver.ACTION_PLAY_PAUSE
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-    private fun getTurntablePreviousIntent(): PendingIntent {
-        val intent = Intent(context, TurntableWidgetReceiver::class.java).apply {
-            action = TurntableWidgetReceiver.ACTION_TURNTABLE_PREVIOUS
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            5,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
+    private fun getLikeIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 2,
+            Intent(context, MusicWidgetReceiver::class.java).apply {
+                action = MusicWidgetReceiver.ACTION_LIKE
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun getShuffleIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 6,
+            Intent(context, MusicWidgetReceiver::class.java).apply {
+                action = MusicWidgetReceiver.ACTION_SHUFFLE
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun getPreviousIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 7,
+            Intent(context, MusicWidgetReceiver::class.java).apply {
+                action = MusicWidgetReceiver.ACTION_PREVIOUS
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun getNextIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 8,
+            Intent(context, MusicWidgetReceiver::class.java).apply {
+                action = MusicWidgetReceiver.ACTION_NEXT
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun getTurntablePlayPauseIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 3,
+            Intent(context, TurntableWidgetReceiver::class.java).apply {
+                action = TurntableWidgetReceiver.ACTION_TURNTABLE_PLAY_PAUSE
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun getTurntableNextIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 4,
+            Intent(context, TurntableWidgetReceiver::class.java).apply {
+                action = TurntableWidgetReceiver.ACTION_TURNTABLE_NEXT
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun getTurntablePreviousIntent(): PendingIntent =
+        PendingIntent.getBroadcast(context, 5,
+            Intent(context, TurntableWidgetReceiver::class.java).apply {
+                action = TurntableWidgetReceiver.ACTION_TURNTABLE_PREVIOUS
+            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }

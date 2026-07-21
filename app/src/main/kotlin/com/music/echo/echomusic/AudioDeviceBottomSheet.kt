@@ -787,32 +787,23 @@ fun AudioQualitySelector(context: Context) {
         )
 
         val options = listOf(
-            "Opus",
-            "Lossless"
+            "Opus"
         )
-        val selectedIndex = when (audioQuality) {
-            AudioQuality.OPUS -> 0
-            AudioQuality.LOSSLESS -> 1
-            else -> 0
-        }
+        val selectedIndex = 0
 
         androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .padding(vertical = 8.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             options.forEachIndexed { index, label ->
                 ToggleButton(
                     checked = selectedIndex == index,
                     onCheckedChange = {
-                        val newQuality = when (index) {
-                            0 -> AudioQuality.OPUS
-                            1 -> AudioQuality.LOSSLESS
-                            else -> AudioQuality.OPUS
-                        }
+                        val newQuality = AudioQuality.OPUS
                         onAudioQualityChange(newQuality)
                         applyAudioQuality(context, newQuality)
                     },
@@ -853,32 +844,23 @@ fun DownloadQualitySelector() {
         )
 
         val options = listOf(
-            "Opus",
-            "Lossless"
+            "Opus"
         )
-        val selectedIndex = when (downloadQuality) {
-            iad1tya.echo.music.constants.DownloadQuality.YOUTUBE -> 0
-            iad1tya.echo.music.constants.DownloadQuality.LOSSLESS -> 1
-            else -> 0
-        }
+        val selectedIndex = 0
 
         androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .padding(vertical = 8.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             options.forEachIndexed { index, label ->
                 ToggleButton(
                     checked = selectedIndex == index,
                     onCheckedChange = {
-                        val newQuality = when (index) {
-                            0 -> iad1tya.echo.music.constants.DownloadQuality.YOUTUBE
-                            1 -> iad1tya.echo.music.constants.DownloadQuality.LOSSLESS
-                            else -> iad1tya.echo.music.constants.DownloadQuality.YOUTUBE
-                        }
+                        val newQuality = iad1tya.echo.music.constants.DownloadQuality.YOUTUBE
                         onDownloadQualityChange(newQuality)
                     },
                     modifier = Modifier

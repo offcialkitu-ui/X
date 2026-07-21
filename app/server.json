@@ -1,5 +1,5 @@
 {
-  "name": "Echo Music Server",
-  "region": "Global - Echo Music",
+  "name": "MelodyX Server",
+  "region": "Global - MelodyX",
   "serverUrl": "wss://iad1tya-echomusic.hf.space/ws"
 }

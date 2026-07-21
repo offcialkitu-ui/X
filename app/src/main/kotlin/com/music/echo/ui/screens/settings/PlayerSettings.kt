@@ -1,77 +1,25 @@
 
-
 package iad1tya.echo.music.ui.screens.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.navigation.NavController
 import iad1tya.echo.music.BuildConfig
 import iad1tya.echo.music.LocalPlayerAwareWindowInsets
 import iad1tya.echo.music.R
-import iad1tya.echo.music.constants.AudioNormalizationKey
-import iad1tya.echo.music.constants.AudioOffload
-import iad1tya.echo.music.constants.AudioQuality
-import iad1tya.echo.music.constants.AudioQualityKey
-import iad1tya.echo.music.constants.AutoDownloadOnLikeKey
-import iad1tya.echo.music.constants.AutomixCrossfadeKey
-import iad1tya.echo.music.constants.AutomixDebugOverlayKey
-import iad1tya.echo.music.constants.CrossfadeDurationKey
-import iad1tya.echo.music.constants.CrossfadeEnabledKey
-import iad1tya.echo.music.constants.CrossfadeGaplessKey
-import iad1tya.echo.music.constants.AutoLoadMoreKey
-import iad1tya.echo.music.constants.AutoSkipNextOnErrorKey
-import iad1tya.echo.music.constants.DisableLoadMoreWhenRepeatAllKey
-import iad1tya.echo.music.constants.EnableGoogleCastKey
-import iad1tya.echo.music.constants.HistoryDuration
-import iad1tya.echo.music.constants.KeepScreenOn
-import iad1tya.echo.music.constants.PauseOnMute
-import iad1tya.echo.music.constants.PersistentQueueKey
-import iad1tya.echo.music.constants.PersistentShuffleAcrossQueuesKey
-import iad1tya.echo.music.constants.PreventDuplicateTracksInQueueKey
-import iad1tya.echo.music.constants.RememberShuffleAndRepeatKey
-import iad1tya.echo.music.constants.ResumeOnBluetoothConnectKey
-import iad1tya.echo.music.constants.SeekExtraSeconds
-import iad1tya.echo.music.constants.ShufflePlaylistFirstKey
-import iad1tya.echo.music.constants.SimilarContent
-import iad1tya.echo.music.constants.ShowAudioFallbackToastKey
-import iad1tya.echo.music.constants.SkipSilenceInstantKey
-import iad1tya.echo.music.constants.SkipSilenceKey
-import iad1tya.echo.music.constants.StopMusicOnTaskClearKey
-import iad1tya.echo.music.constants.EnableExportAsMp3Key
-
-import iad1tya.echo.music.constants.PreloadNextSongEnabledKey
-import iad1tya.echo.music.constants.PreloadNextSongLimitKey
-import iad1tya.echo.music.constants.PreloadLyricsEnabledKey
-
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import iad1tya.echo.music.constants.*
 import iad1tya.echo.music.ui.component.DefaultDialog
 import iad1tya.echo.music.ui.component.EnumDialog
 import iad1tya.echo.music.ui.component.IconButton
@@ -89,8 +37,9 @@ import android.net.Uri
 fun PlayerSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
-highlightKey: String? = null) {
-    val scrollState = androidx.compose.foundation.rememberScrollState()
+    highlightKey: String? = null
+) {
+    val scrollState = rememberScrollState()
 
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         AudioQualityKey,
@@ -107,14 +56,6 @@ highlightKey: String? = null) {
     val (crossfadeDuration, onCrossfadeDurationChange) = rememberPreference(
         CrossfadeDurationKey,
         defaultValue = 5f
-    )
-    val (automixCrossfade, onAutomixCrossfadeChange) = rememberPreference(
-        AutomixCrossfadeKey,
-        defaultValue = false
-    )
-    val (automixDebugOverlay, onAutomixDebugOverlayChange) = rememberPreference(
-        AutomixDebugOverlayKey,
-        defaultValue = false
     )
     val (crossfadeGapless, onCrossfadeGaplessChange) = rememberPreference(
         CrossfadeGaplessKey,
@@ -141,7 +82,6 @@ highlightKey: String? = null) {
         key = AudioOffload,
         defaultValue = false
     )
-
 
     val (preloadNextSongEnabled, onPreloadNextSongEnabledChange) = rememberPreference(
         key = PreloadNextSongEnabledKey,
@@ -232,21 +172,91 @@ highlightKey: String? = null) {
         defaultValue = 1f
     )
 
-    var showAudioQualityDialog by remember { mutableStateOf(false) }
-    var showDownloadQualityDialog by remember { mutableStateOf(false) }
-    var showLosslessAudioWarning by remember { mutableStateOf(false) }
-    var showLosslessDownloadWarning by remember { mutableStateOf(false) }
+    val (pureLosslessEnabled, onPureLosslessEnabledChange) = rememberPreference(
+        PureLosslessKey,
+        defaultValue = false
+    )
+    val (virtualizer, onVirtualizerChange) = rememberPreference(
+        VirtualizerKey,
+        defaultValue = 0f
+    )
+    val (bassBoost, onBassBoostChange) = rememberPreference(
+        BassBoostKey,
+        defaultValue = 0f
+    )
+    val (spatialAudioEnabled, onSpatialAudioEnabledChange) = rememberPreference(
+        SpatialAudioEnabledKey,
+        defaultValue = false
+    )
+    val (spatialAudioStrength, onSpatialAudioStrengthChange) = rememberPreference(
+        SpatialAudioStrengthKey,
+        defaultValue = 0.5f
+    )
+    val (sleepTimer, onSleepTimerChange) = rememberPreference(
+        SleepTimerKey,
+        defaultValue = 0
+    )
+
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
+
+    if (showSleepTimerDialog) {
+        var tempMinutes by remember { mutableStateOf(sleepTimer) }
+        DefaultDialog(
+            onDismiss = { showSleepTimerDialog = false },
+            title = { Text("Sleep Timer") },
+            buttons = {
+                TextButton(onClick = { 
+                    onSleepTimerChange(0)
+                    showSleepTimerDialog = false 
+                }) {
+                    Text("Off")
+                }
+                TextButton(onClick = { showSleepTimerDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+                TextButton(onClick = {
+                    onSleepTimerChange(tempMinutes)
+                    showSleepTimerDialog = false
+                }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("${tempMinutes} minutes", style = MaterialTheme.typography.titleLarge)
+                Slider(
+                    value = tempMinutes.toFloat(),
+                    onValueChange = { tempMinutes = it.roundToInt() },
+                    valueRange = 0f..120f,
+                    steps = 11
+                )
+            }
+        }
+    }
+
+    var showAudioQualityDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var showDownloadQualityDialog by remember {
+        mutableStateOf(false)
+    }
 
     val (downloadQuality, onDownloadQualityChange) = rememberEnumPreference(
-        iad1tya.echo.music.constants.DownloadQualityKey,
-        defaultValue = iad1tya.echo.music.constants.DownloadQuality.YOUTUBE
+        DownloadQualityKey,
+        defaultValue = DownloadQuality.YOUTUBE
     )
+
+    var showSaavnAudioWarning by remember { mutableStateOf(false) }
+    var showLosslessAudioWarning by remember { mutableStateOf(false) }
 
     if (showAudioQualityDialog) {
         EnumDialog(
             onDismiss = { showAudioQualityDialog = false },
             onSelect = {
-                if (it == AudioQuality.LOSSLESS) {
+                if (it == AudioQuality.SAAVN) {
+                    showSaavnAudioWarning = true
+                } else if (it == AudioQuality.LOSSLESS) {
                     showLosslessAudioWarning = true
                 } else {
                     onAudioQualityChange(it)
@@ -255,15 +265,13 @@ highlightKey: String? = null) {
             },
             title = stringResource(R.string.audio_quality),
             current = audioQuality,
-            values = listOf(AudioQuality.OPUS, AudioQuality.LOSSLESS),
+            values = listOf(AudioQuality.OPUS),
             valueText = {
                 when (it) {
                     AudioQuality.OPUS -> "Opus"
-                    AudioQuality.LOSSLESS -> "Lossless"
+                    AudioQuality.SAAVN -> "Saavn (320kbps)"
+                    AudioQuality.LOSSLESS -> "Qobuz (Lossless)"
                 }
-            },
-            valueDescription = {
-                ""
             }
         )
     }
@@ -272,20 +280,17 @@ highlightKey: String? = null) {
         EnumDialog(
             onDismiss = { showDownloadQualityDialog = false },
             onSelect = {
-                if (it == iad1tya.echo.music.constants.DownloadQuality.LOSSLESS) {
-                    showLosslessDownloadWarning = true
-                } else {
-                    onDownloadQualityChange(it)
-                }
+                onDownloadQualityChange(it)
                 showDownloadQualityDialog = false
             },
             title = stringResource(R.string.download_quality_title),
             current = downloadQuality,
-            values = listOf(iad1tya.echo.music.constants.DownloadQuality.YOUTUBE, iad1tya.echo.music.constants.DownloadQuality.LOSSLESS),
+            values = listOf(DownloadQuality.YOUTUBE),
             valueText = {
                 when (it) {
-                    iad1tya.echo.music.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-                    iad1tya.echo.music.constants.DownloadQuality.LOSSLESS -> "Lossless"
+                    DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
+                    DownloadQuality.SAAVN -> "Saavn (320kbps)"
+                    DownloadQuality.LOSSLESS -> "Qobuz (Lossless)"
                 }
             }
         )
@@ -323,11 +328,36 @@ highlightKey: String? = null) {
             }
         }
 
+        if (showSaavnAudioWarning) {
+            DefaultDialog(
+                onDismiss = { showSaavnAudioWarning = false },
+                title = { Text("Enable Saavn (320kbps)?") },
+                buttons = {
+                    TextButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://echomusic.fun/donate"))
+                        context.startActivity(intent)
+                    }) {
+                        Text("Donate")
+                    }
+                    TextButton(onClick = { showSaavnAudioWarning = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    TextButton(onClick = {
+                        showSaavnAudioWarning = false
+                        onAudioQualityChange(AudioQuality.SAAVN)
+                    }) {
+                        Text(stringResource(R.string.enable))
+                    }
+                }
+            ) {
+                Text("Saavn (320kbps) streams run through MelodyX's servers and cost real money to keep running. If you find it useful, please consider donating to help keep this alive.\n\nNote: If Saavn playback fails, the app automatically falls back to YouTube Music's Opus stream.")
+            }
+        }
 
         if (showLosslessAudioWarning) {
             DefaultDialog(
                 onDismiss = { showLosslessAudioWarning = false },
-                title = { Text("Enable Lossless Audio?") },
+                title = { Text(stringResource(R.string.enable_lossless_audio)) },
                 buttons = {
                     TextButton(onClick = {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://echomusic.fun/donate"))
@@ -341,56 +371,101 @@ highlightKey: String? = null) {
                     TextButton(onClick = {
                         showLosslessAudioWarning = false
                         onAudioQualityChange(AudioQuality.LOSSLESS)
+                        if (crossfadeEnabled) {
+                            onCrossfadeEnabledChange(false)
+                            android.widget.Toast.makeText(context, "Crossfade has been turned off for Lossless playback", android.widget.Toast.LENGTH_SHORT).show()
+                        }
                     }) {
                         Text(stringResource(R.string.enable))
                     }
                 }
             ) {
-                Text("Lossless is uncompressed music which is higher in size and requires significant server load. Continuous maintenance requires funding. We have a monthly goal of $100 to keep this active.\n\nPlease consider donating!")
+                Text("Lossless (Qobuz) streams run through MelodyX's servers and cost real money to keep running. If you find it useful, please consider donating — it directly helps cover server costs.\n\n" + stringResource(R.string.lossless_audio_warning))
             }
         }
 
+        Material3SettingsGroup(scrollState = scrollState, 
+            title = "Audiophile X-Engine",
+            items = buildList {
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.palette),
+                    title = { Text("Pure Lossless Mode") },
+                    description = { Text("Forces bit-perfect playback and bypasses all software filters") },
+                    trailingContent = {
+                        Switch(
+                            checked = pureLosslessEnabled,
+                            onCheckedChange = onPureLosslessEnabledChange
+                        )
+                    },
+                    onClick = { onPureLosslessEnabledChange(!pureLosslessEnabled) }
+                ))
 
-        if (showLosslessDownloadWarning) {
-            DefaultDialog(
-                onDismiss = { showLosslessDownloadWarning = false },
-                title = { Text("Enable Lossless Downloads?") },
-                buttons = {
-                    TextButton(onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://echomusic.fun/donate"))
-                        context.startActivity(intent)
-                    }) {
-                        Text("Donate")
-                    }
-                    TextButton(onClick = { showLosslessDownloadWarning = false }) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                    TextButton(onClick = {
-                        showLosslessDownloadWarning = false
-                        onDownloadQualityChange(iad1tya.echo.music.constants.DownloadQuality.LOSSLESS)
-                    }) {
-                        Text(stringResource(R.string.enable))
-                    }
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.graphic_eq),
+                    title = { Text("3D Spatial Audio") },
+                    description = { Text("Expands soundstage for an 'in-the-room' listening experience") },
+                    trailingContent = {
+                        Switch(
+                            checked = spatialAudioEnabled && !pureLosslessEnabled,
+                            enabled = !pureLosslessEnabled,
+                            onCheckedChange = onSpatialAudioEnabledChange
+                        )
+                    },
+                    onClick = { if (!pureLosslessEnabled) onSpatialAudioEnabledChange(!spatialAudioEnabled) }
+                ))
+                
+                if (spatialAudioEnabled && !pureLosslessEnabled) {
+                    add(Material3SettingsItem(
+                        icon = painterResource(R.drawable.tune),
+                        title = { Text("Soundstage Width") },
+                        description = {
+                            Slider(
+                                value = spatialAudioStrength,
+                                onValueChange = onSpatialAudioStrengthChange,
+                                valueRange = 0f..1f,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    ))
                 }
-            ) {
-                Text("Lossless downloads require significant server load and bandwidth. Continuous maintenance requires funding. We have a monthly goal of $100 to keep this active.\n\nPlease consider donating!")
+
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.speed),
+                    title = { Text("Analog Bass Boost") },
+                    description = {
+                        Column {
+                            Text("Strength: ${bassBoost.roundToInt()}%", style = MaterialTheme.typography.labelSmall)
+                            Slider(
+                                value = bassBoost,
+                                onValueChange = onBassBoostChange,
+                                enabled = !pureLosslessEnabled,
+                                valueRange = 0f..100f,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                ))
+
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.album),
+                    title = { Text("Vocal Virtualizer") },
+                    description = {
+                        Column {
+                            Text("Strength: ${virtualizer.roundToInt()}%", style = MaterialTheme.typography.labelSmall)
+                            Slider(
+                                value = virtualizer,
+                                onValueChange = onVirtualizerChange,
+                                enabled = !pureLosslessEnabled,
+                                valueRange = 0f..100f,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                ))
             }
-        }
-
-
-
-
-
-
-        Spacer(
-            Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
-            )
         )
 
-        iad1tya.echo.music.ui.component.FundingProgressCard()
+        Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(scrollState = scrollState, 
             title = stringResource(R.string.player),
@@ -403,13 +478,23 @@ highlightKey: String? = null) {
                         Text(
                             when (audioQuality) {
                                 AudioQuality.OPUS -> "Opus"
-                                AudioQuality.LOSSLESS -> "Lossless"
+                                AudioQuality.SAAVN -> "Saavn (320kbps)"
+                                AudioQuality.LOSSLESS -> "Qobuz (Lossless)"
                             }
                         )
                     },
                     onClick = { showAudioQualityDialog = true }
                 ))
                 
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.timer),
+                    title = { Text("Sleep Fade-out Timer") },
+                    description = { 
+                        Text(if (sleepTimer > 0) "Turning off in $sleepTimer min" else "Not set") 
+                    },
+                    onClick = { showSleepTimerDialog = true }
+                ))
+
                 add(Material3SettingsItem(
     isHighlighted = (highlightKey == "Show audio fallback notifications"),
                     icon = painterResource(R.drawable.notification),
@@ -420,13 +505,7 @@ highlightKey: String? = null) {
                     trailingContent = {
                         Switch(
                             checked = showAudioFallbackToast,
-                            onCheckedChange = onShowAudioFallbackToastChange,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
-                                uncheckedThumbColor = androidx.compose.material3.MaterialTheme.colorScheme.outline,
-                                uncheckedTrackColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant
-                            )
+                            onCheckedChange = onShowAudioFallbackToastChange
                         )
                     },
                     onClick = { onShowAudioFallbackToastChange(!showAudioFallbackToast) }
@@ -439,8 +518,9 @@ highlightKey: String? = null) {
                     description = {
                         Text(
                             when (downloadQuality) {
-                                iad1tya.echo.music.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-                                iad1tya.echo.music.constants.DownloadQuality.LOSSLESS -> "Lossless"
+                                DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
+                                DownloadQuality.SAAVN -> "Saavn (320kbps)"
+                                DownloadQuality.LOSSLESS -> "Qobuz (Lossless)"
                             }
                         )
                     },
@@ -455,7 +535,7 @@ highlightKey: String? = null) {
                     title = { Text(stringResource(R.string.crossfade)) },
                     description = { 
                         if (isLosslessSelected) {
-                            Text("Crossfade is disabled while using Lossless")
+                            Text("Crossfade is disabled while using Qobuz (Lossless)")
                         } else {
                             Text(stringResource(R.string.crossfade_desc)) 
                         }
@@ -534,52 +614,6 @@ highlightKey: String? = null) {
                         },
                         onClick = { onCrossfadeGaplessChange(!crossfadeGapless) }
                     ))
-                    add(Material3SettingsItem(
-                        isHighlighted = highlightKey == stringResource(R.string.automix),
-                        icon = painterResource(R.drawable.graphic_eq),
-                        title = { Text(stringResource(R.string.automix)) },
-                        description = { Text(stringResource(R.string.automix_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = automixCrossfade,
-                                onCheckedChange = onAutomixCrossfadeChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (automixCrossfade) R.drawable.check else R.drawable.close
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            )
-                        },
-                        onClick = { onAutomixCrossfadeChange(!automixCrossfade) }
-                    ))
-                    if (automixCrossfade) {
-                        add(Material3SettingsItem(
-                            isHighlighted = highlightKey == stringResource(R.string.automix_debug),
-                            icon = painterResource(R.drawable.bug_report),
-                            title = { Text(stringResource(R.string.automix_debug)) },
-                            description = { Text(stringResource(R.string.automix_debug_desc)) },
-                            trailingContent = {
-                                Switch(
-                                    checked = automixDebugOverlay,
-                                    onCheckedChange = onAutomixDebugOverlayChange,
-                                    thumbContent = {
-                                        Icon(
-                                            painter = painterResource(
-                                                id = if (automixDebugOverlay) R.drawable.check else R.drawable.close
-                                            ),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize)
-                                        )
-                                    }
-                                )
-                            },
-                            onClick = { onAutomixDebugOverlayChange(!automixDebugOverlay) }
-                        ))
-                    }
                 }
                 add(Material3SettingsItem(
     isHighlighted = (highlightKey == stringResource(R.string.history_duration)),
@@ -1152,13 +1186,6 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = { onEnableExportAsMp3Change(!enableExportAsMp3) }
-                ),
-                Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.youtube_decryption_settings)),
-                    icon = painterResource(R.drawable.settings),
-                    title = { Text(stringResource(R.string.youtube_decryption_settings)) },
-                    description = { Text(stringResource(R.string.youtube_decryption_desc)) },
-                    onClick = { navController.navigate("settings/echo_extractor") }
                 )
             )
         )

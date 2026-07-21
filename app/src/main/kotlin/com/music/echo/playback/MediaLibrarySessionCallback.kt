@@ -599,6 +599,7 @@ constructor(
             MediaMetadata
                 .Builder()
                 .setTitle(context.getString(R.string.app_name))
+                .setArtworkUri(drawableUri(R.drawable.ic_launcher_nobg))
                 .setIsPlayable(false)
                 .setIsBrowsable(true)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)

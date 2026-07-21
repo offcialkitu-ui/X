@@ -55,7 +55,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -261,10 +260,6 @@ fun ListenTogetherScreen(
                     RoomStatusCard(
                         roomCode = room.roomCode,
                         isHost = isHost,
-                        allowParticipantControl = room.allowParticipantControl,
-                        onAllowParticipantControlChange = { enabled ->
-                            listenTogetherManager.updateRoomSettings(enabled)
-                        },
                         context = context,
                         navController = navController
                     )
@@ -388,16 +383,6 @@ fun ListenTogetherScreen(
             }
         }
 
-        if (isInRoom && isHost) {
-            item {
-                ParticipantControlCard(
-                    allowParticipantControl = roomState?.allowParticipantControl == true,
-                    onAllowParticipantControlChange = { enabled ->
-                        listenTogetherManager.updateRoomSettings(enabled)
-                    }
-                )
-            }
-        }
         
         item {
             SettingsLinkCard(
@@ -667,8 +652,6 @@ private fun ConnectionStatusCard(
 private fun RoomStatusCard(
     roomCode: String,
     isHost: Boolean,
-    allowParticipantControl: Boolean,
-    onAllowParticipantControlChange: (Boolean) -> Unit,
     context: Context,
     navController: NavController
 ) {
@@ -705,8 +688,6 @@ private fun RoomStatusCard(
             Text(
                 text = if (isHost)
                     stringResource(R.string.listen_together_you_are_host)
-                else if (allowParticipantControl)
-                    stringResource(R.string.listen_together_participant_control_enabled)
                 else
                     stringResource(R.string.listen_together_you_are_guest),
                 style = MaterialTheme.typography.bodyMedium,
@@ -1340,29 +1321,6 @@ private fun SettingsLinkCard(onClick: () -> Unit) {
                 title = { Text(stringResource(R.string.settings)) },
                 description = { Text(stringResource(R.string.listen_together_settings_desc)) },
                 onClick = onClick
-            )
-        )
-    )
-}
-
-@Composable
-private fun ParticipantControlCard(
-    allowParticipantControl: Boolean,
-    onAllowParticipantControlChange: (Boolean) -> Unit
-) {
-    Material3SettingsGroup(
-        items = listOf(
-            Material3SettingsItem(
-                icon = painterResource(R.drawable.music_note),
-                title = { Text(stringResource(R.string.listen_together_allow_participant_control)) },
-                description = { Text(stringResource(R.string.listen_together_allow_participant_control_desc)) },
-                trailingContent = { 
-                    Switch(
-                        checked = allowParticipantControl,
-                        onCheckedChange = onAllowParticipantControlChange
-                    )
-                },
-                onClick = { onAllowParticipantControlChange(!allowParticipantControl) }
             )
         )
     )

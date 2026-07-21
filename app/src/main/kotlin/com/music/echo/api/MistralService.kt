@@ -30,10 +30,8 @@ object MistralService {
         mode: String,
         maxRetries: Int = 3,
         sourceLanguage: String? = null,
-        onLog: ((String) -> Unit)? = null
     ): Result<List<String>> =
         withContext(Dispatchers.IO) {
-            onLog?.invoke("Starting translation...")
             var currentAttempt = 0
 
             if (text.isBlank()) {
@@ -151,9 +149,8 @@ Output MUST be a JSON array with EXACTLY $lineCount strings."""
                             .post(jsonBody.toString().toRequestBody(JSON))
                             .build()
 
-                    onLog?.invoke("Calling Mistral API (Attempt ${currentAttempt + 1})...")
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string() ?: ""
+                    val responseBody = response.body?.string()
 
                     if (!response.isSuccessful) {
                         if (response.code >= 500) {
@@ -220,7 +217,6 @@ Output MUST be a JSON array with EXACTLY $lineCount strings."""
                             }
 
                             if (translatedLines != null) {
-                                onLog?.invoke("Successfully parsed ${translatedLines.size} lines")
                                 return@withContext when {
                                     translatedLines.size == lineCount -> Result.success(translatedLines)
                                     translatedLines.size > lineCount -> Result.success(translatedLines.take(lineCount))

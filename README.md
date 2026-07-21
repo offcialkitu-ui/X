@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="assets/Echo-new.png" alt="Echo Music Logo" width="140"/>
+  <img src="assets/Echo-new.png" alt="MelodyX Logo" width="140"/>
 
-  <h1>Echo Music</h1>
+  <h1>MelodyX</h1>
 
   <p><strong>A modern Android music app with ad-free streaming, synced lyrics, offline playback, and an intuitive user experience.
 </strong></p>
@@ -32,7 +32,7 @@
 
 ## Overview
 
-Echo Music delivers a seamless, premium listening experience by leveraging YouTube Music's vast library — without the ads. It adds powerful extras including offline downloads, real-time synchronized lyrics, and environment-aware music recognition.
+MelodyX delivers a seamless, premium listening experience by leveraging YouTube Music's vast library — without the ads. It adds powerful extras including offline downloads, real-time synchronized lyrics, and environment-aware music recognition.
 
 ---
 
@@ -43,7 +43,7 @@ Echo Music delivers a seamless, premium listening experience by leveraging YouTu
 - [Features](#features)
   - [What's New](#whats-new)
   - [Streaming & Playback](#streaming--playback)
-  - [Discovery & Echo Find](#discovery--echo-find)
+  - [Discovery & Melody Find](#discovery--melody-find)
   - [Lyrics](#lyrics)
   - [Integrations](#integrations)
   - [Smart Playback](#smart-playback)
@@ -88,8 +88,8 @@ Echo Music delivers a seamless, premium listening experience by leveraging YouTu
         <img src="Screenshots/sc_5.png" alt="Music Library" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
       </td>
       <td align="center" style="padding: 10px; border: none;">
-        <strong>Echo Find (Recognition)</strong><br><br>
-        <img src="Screenshots/sc_6.png" alt="Echo Find" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
+        <strong>Melody Find (Recognition)</strong><br><br>
+        <img src="Screenshots/sc_6.png" alt="Melody Find" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
       </td>
     </tr>
   </table>
@@ -115,9 +115,9 @@ Echo Music delivers a seamless, premium listening experience by leveraging YouTu
 - **Crossfade** — Smooth transitions between tracks.
 - **Canvas Animations** — Visual animations while playing music.
 
-### Discovery & Echo Find
-- **Echo Find** — Identify songs playing around you using advanced audio recognition.
-- **Echo Brain** — An intelligent, on-device engine that analyzes your listening momentum and auto-injects perfectly aligned tracks into your queue. Read more in the [Echo Brain Documentation](ECHO_BRAIN_DOCS.md).
+### Discovery & Melody Find
+- **Melody Find** — Identify songs playing around you using advanced audio recognition.
+- **Melody Brain** — An intelligent, on-device engine that analyzes your listening momentum and auto-injects perfectly aligned tracks into your queue. Read more in the [Melody Brain Documentation](ECHO_BRAIN_DOCS.md).
 - **Smart Recommendations** — Personalized suggestions based on your listening history.
 - **Comprehensive Browsing** — Explore Charts, Podcasts, Moods, and Genres.
 
@@ -170,7 +170,7 @@ Download the latest pre-compiled APK from the [Releases Page](https://github.com
    Firebase is required for analytics and crash reporting. See the instructions in [SETUP.md](SETUP.md#3-configure-firebase-optional) for adding your `google-services.json`.
 
 4. **Build the Application**
-   Echo Music has two build variants: **FOSS** (without Google Play Services / Cast) and **GMS** (with Cast support).
+   MelodyX has two build variants: **FOSS** (without Google Play Services / Cast) and **GMS** (with Cast support).
    
    To build the FOSS Universal Debug variant:
    ```bash
@@ -186,7 +186,7 @@ Download the latest pre-compiled APK from the [Releases Page](https://github.com
 
 ## Translations
 
-<h3>We use Weblate to translate Echo Music. <a href="https://hosted.weblate.org/projects/echo-music/">Help us bring Echo Music to more people!</a></h3>
+<h3>We use Weblate to translate MelodyX. <a href="https://hosted.weblate.org/projects/echo-music/">Help us bring MelodyX to more people!</a></h3>
 
 <a href="https://hosted.weblate.org/projects/echo-music/">
   <img src="https://hosted.weblate.org/widgets/echo-music/-/horizontal-auto.svg" alt="Translation status" />
@@ -207,7 +207,7 @@ Join the community for updates, discussions, and help.
 
 ## Support the Project
 
-If Echo Music has been useful to you, consider supporting its development.
+If MelodyX has been useful to you, consider supporting its development.
 
 <div align="center">
   <a href="https://buymeacoffee.com/iad1tya" style="text-decoration:none;"><img src="assets/bmac.png" alt="Buy Me A Coffee Logo" width="140" style="margin: 0 10px;"/></a>
@@ -227,7 +227,7 @@ If Echo Music has been useful to you, consider supporting its development.
 
 ## Special Thanks
 
-Echo Music stands on the shoulders of several excellent open-source projects. Sincere thanks to:
+MelodyX stands on the shoulders of several excellent open-source projects. Sincere thanks to:
 
 | Project | Description |
 | :--- | :--- |
@@ -235,8 +235,8 @@ Echo Music stands on the shoulders of several excellent open-source projects. Si
 | [ArchiveTune](https://github.com/koiverse/ArchiveTune) | Material You UI inspiration |
 | [Better Lyrics](https://better-lyrics.boidu.dev/) | Lyrics enhancement and synchronization |
 | [SimpMusic](https://github.com/maxrave-dev/SimpMusic) | Lyrics implementation reference |
-| [Music Recognizer](https://github.com/aleksey-saenko/MusicRecognizer) | Audio recognition (Echo Find) |
-| [Flow](https://github.com/a-edev/Flow) | AI queue generation engine (Echo Brain) |
+| [Music Recognizer](https://github.com/aleksey-saenko/MusicRecognizer) | Audio recognition (Melody Find) |
+| [Flow](https://github.com/a-edev/Flow) | AI queue generation engine (Melody Brain) |
 | [zemer-cipher](hhttps://github.com/ZemerTeam/zemer-cipher) | YouTube cipher deobfuscation and PoToken generation |
 
 ---

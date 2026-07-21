@@ -177,21 +177,12 @@ fun NewActionGrid(
                 horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
             ) {
                 rowIndexedActions.forEach { (index, action) ->
-                    var performAction by remember { mutableStateOf(false) }
-
-                    if (performAction) {
-                        action.onClick()
-                        LaunchedEffect(Unit) {
-                            performAction = false
-                        }
-                    }
-
                     val bgColor = if (action.backgroundColor != Color.Unspecified) action.backgroundColor else MaterialTheme.colorScheme.surfaceVariant
                     val contentCol = if (action.contentColor != Color.Unspecified) action.contentColor else MaterialTheme.colorScheme.onSurfaceVariant
 
                     ToggleButton(
                         checked = false,
-                        onCheckedChange = { performAction = true },
+                        onCheckedChange = { action.onClick() },
                         enabled = action.enabled,
                         shapes = when {
                             actions.size == 1 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
@@ -228,7 +219,7 @@ fun NewActionGrid(
 data class NewAction(
     val icon: @Composable () -> Unit,
     val text: String,
-    val onClick: @Composable () -> Unit,
+    val onClick: () -> Unit,
     val enabled: Boolean = true,
     val backgroundColor: Color = Color.Unspecified,
     val contentColor: Color = Color.Unspecified

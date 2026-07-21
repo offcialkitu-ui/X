@@ -173,23 +173,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import iad1tya.echo.music.viewmodels.DailyDiscoverItem
 
-private fun NavController.navigateToPlaylistItem(playlist: PlaylistItem) {
-    when (val playlistId = playlist.id.removePrefix("VL")) {
-        "LM" -> navigate("auto_playlist/liked")
-        "SE" -> navigate("auto_playlist/downloaded")
-        else -> navigate("online_playlist/$playlistId")
-    }
-}
 
 sealed class HomeSection(val id: String, val baseWeight: Int) {
     data object SpeedDial : HomeSection("speed_dial", 100)
-    data object AiRecommendations : HomeSection("ai_recommendations", 95)
     data object QuickPicks : HomeSection("quick_picks", 90)
+    data object EchoBrainPlaylists : HomeSection("echo_brain_playlists", 85)
     data object DailyDiscover : HomeSection("daily_discover", 80)
     data object KeepListening : HomeSection("keep_listening", 50)
     data object AccountPlaylists : HomeSection("account_playlists", 40)
     data object ForgottenFavorites : HomeSection("forgotten_favorites", 30)
     data object FromTheCommunity : HomeSection("from_the_community", 20)
+    data object OnThisDay : HomeSection("on_this_day", 15)
     data class SimilarRecommendation(val index: Int) : HomeSection("similar_recommendation_$index", 10)
     data class HomePageSection(val index: Int) : HomeSection("home_page_section_$index", 10)
     data object MoodAndGenres : HomeSection("mood_and_genres", 5)
@@ -577,7 +571,6 @@ fun HomeScreen(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
     val quickPicks by viewModel.quickPicks.collectAsState()
-    val aiRecommendedPlaylist by viewModel.aiRecommendedPlaylist.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
@@ -586,6 +579,8 @@ fun HomeScreen(
     val explorePage by viewModel.explorePage.collectAsState()
     val dailyDiscover by viewModel.dailyDiscover.collectAsState()
     val communityPlaylists by viewModel.communityPlaylists.collectAsState()
+    val echoBrainPlaylists by viewModel.echoBrainPlaylists.collectAsState()
+    val onThisDaySongs by viewModel.onThisDaySongs.collectAsState()
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
@@ -768,7 +763,7 @@ fun HomeScreen(
 
                             is AlbumItem -> navController.navigate("album/${item.id}")
                             is ArtistItem -> navController.navigate("artist/${item.id}")
-                            is PlaylistItem -> navController.navigateToPlaylistItem(item)
+                            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
                         }
                     },
                     onLongClick = {
@@ -816,15 +811,14 @@ fun HomeScreen(
         communityPlaylists,
         similarRecommendations,
         homePage?.sections,
-        explorePage?.moodAndGenres,
-        aiRecommendedPlaylist
+        explorePage?.moodAndGenres
     ) {
         val list = mutableListOf<HomeSection>()
 
         if (showSpeedDial && speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
-        if (aiRecommendedPlaylist != null && aiRecommendedPlaylist!!.second.isNotEmpty()) list.add(HomeSection.AiRecommendations)
         if (quickPicks?.isNotEmpty() == true) list.add(HomeSection.QuickPicks)
         if (communityPlaylists?.isNotEmpty() == true) list.add(HomeSection.FromTheCommunity)
+        if (onThisDaySongs?.isNotEmpty() == true) list.add(HomeSection.OnThisDay)
         if (dailyDiscover?.isNotEmpty() == true) list.add(HomeSection.DailyDiscover)
         if (keepListening?.isNotEmpty() == true) list.add(HomeSection.KeepListening)
         if (accountPlaylists?.isNotEmpty() == true) list.add(HomeSection.AccountPlaylists)
@@ -1060,7 +1054,7 @@ fun HomeScreen(
                                                                                             )
                                                                                             is AlbumItem -> navController.navigate("album/${randomItem.id}")
                                                                                             is ArtistItem -> navController.navigate("artist/${randomItem.id}")
-                                                                                            is PlaylistItem -> navController.navigateToPlaylistItem(randomItem)
+                                                                                            is PlaylistItem -> navController.navigate("online_playlist/${randomItem.id}") 
                                                                                         }
                                                                                     }
                                                                                 }
@@ -1097,7 +1091,7 @@ fun HomeScreen(
                                                                                         is AlbumItem -> navController.navigate("album/${item.id}")
                                                                                         is ArtistItem -> navController.navigate("artist/${item.id}")
 
-                                                                                        is PlaylistItem -> navController.navigateToPlaylistItem(item)
+                                                                                        is PlaylistItem -> navController.navigate("online_playlist/${item.id}") 
                                                                                     }
                                                                                 },
                                                                                 onLongClick = {
@@ -1160,35 +1154,6 @@ fun HomeScreen(
                                                     )
                                                 }
                                             }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        HomeSection.AiRecommendations -> {
-                            aiRecommendedPlaylist?.let { pair ->
-                                val (playlist, songs) = pair
-                                item(key = "ai_recommendation_title") {
-                                    val lastUpdatedStr = playlist.playlist.lastUpdateTime?.let {
-                                        "Last updated: " + it.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, h:mm a"))
-                                    }
-                                    NavigationTitle(
-                                        title = playlist.title,
-                                        label = lastUpdatedStr,
-                                        onClick = {
-                                            navController.navigate("local_playlist/${playlist.id}")
-                                        },
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-                                item(key = "ai_recommendation_list") {
-                                    LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.animateItem()
-                                    ) {
-                                        items(items = songs, key = { it.id }) { songObj ->
-                                            localGridItem(songObj)
                                         }
                                     }
                                 }
@@ -1314,6 +1279,65 @@ fun HomeScreen(
                                 }
                             }
                         }
+                        HomeSection.EchoBrainPlaylists -> {
+                            echoBrainPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                                item(key = "echo_brain_playlists_title") {
+                                    NavigationTitle(
+                                        title = "Melody Brain Recommends",
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
+
+                                item(key = "echo_brain_playlists_content") {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        modifier = Modifier.animateItem()
+                                    ) {
+                                        items(playlists, key = { it.playlist.id }) { item ->
+                                            CommunityPlaylistCard(
+                                                item = item,
+                                                onClick = {
+                                                    if (item.playlist.id == "echo_brain_mix_local") {
+                                                        playerConnection.playQueue(
+                                                            ListQueue(
+                                                                title = item.playlist.title,
+                                                                items = item.songs.map { it.toMediaMetadata().toMediaItem() }
+                                                            )
+                                                        )
+                                                    } else {
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue(
+                                                                WatchEndpoint(videoId = item.playlist.id.removePrefix("RDAMVM"), playlistId = item.playlist.id)
+                                                            )
+                                                        )
+                                                    }
+                                                },
+                                                onSongClick = { song ->
+                                                    if (item.playlist.id == "echo_brain_mix_local") {
+                                                        val index = item.songs.indexOf(song).takeIf { it >= 0 } ?: 0
+                                                        playerConnection.playQueue(
+                                                            ListQueue(
+                                                                title = item.playlist.title,
+                                                                items = item.songs.map { it.toMediaMetadata().toMediaItem() },
+                                                                startIndex = index
+                                                            )
+                                                        )
+                                                    } else {
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue(
+                                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                                song.toMediaMetadata()
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         HomeSection.FromTheCommunity -> {
                             communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
                                 item(key = "community_playlists_title") {
@@ -1333,7 +1357,7 @@ fun HomeScreen(
                                             CommunityPlaylistCard(
                                                 item = item,
                                                 onClick = {
-                                                    navController.navigateToPlaylistItem(item.playlist)
+                                                    navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
                                                 },
                                                 onSongClick = { song ->
                                                     playerConnection.playQueue(
@@ -1343,6 +1367,61 @@ fun HomeScreen(
                                                         )
                                                     )
                                                 }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        HomeSection.OnThisDay -> {
+                            onThisDaySongs?.takeIf { it.isNotEmpty() }?.let { songs ->
+                                item(key = "on_this_day_title") {
+                                    NavigationTitle(
+                                        title = "On this day in history",
+                                        onPlayAllClick = {
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = "On this day in history",
+                                                    items = songs.map { it.toMediaItem() }
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
+
+                                item(key = "on_this_day_list") {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.animateItem()
+                                    ) {
+                                        items(songs, key = { it.id }) { song ->
+                                            SongGridItem(
+                                                song = song,
+                                                isActive = song.id == mediaMetadata?.id,
+                                                isPlaying = isPlaying,
+                                                modifier = Modifier
+                                                    .width(160.dp)
+                                                    .combinedClickable(
+                                                        onClick = {
+                                                            if (song.id == mediaMetadata?.id) {
+                                                                playerConnection.togglePlayPause()
+                                                            } else {
+                                                                playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
+                                                            }
+                                                        },
+                                                        onLongClick = {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            menuState.show {
+                                                                SongMenu(
+                                                                    originalSong = song,
+                                                                    navController = navController,
+                                                                    onDismiss = menuState::dismiss
+                                                                )
+                                                            }
+                                                        }
+                                                    )
                                             )
                                         }
                                     }

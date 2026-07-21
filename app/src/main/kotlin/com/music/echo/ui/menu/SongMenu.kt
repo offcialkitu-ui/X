@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
@@ -336,13 +337,15 @@ fun SongMenu(
         },
     )
 
+    HorizontalDivider()
+
     Spacer(modifier = Modifier.height(12.dp))
 
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    val isGuest = listenTogetherManager?.isGuestPlaybackRestricted == true
+    val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -403,6 +406,57 @@ fun SongMenu(
                             }
                             context.startActivity(Intent.createChooser(intent, null))
                         }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_instagram_new),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = Color(0xFFE4405F)
+                            )
+                        },
+                        text = "Story Share",
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    val bitmap = iad1tya.echo.music.utils.ComposeToImage.createSongShareImage(
+                                        context = context,
+                                        coverArtUrl = song.thumbnailUrl,
+                                        songTitle = song.song.title,
+                                        artistName = song.artists.joinToString(", ") { it.name }
+                                    )
+                                    val uri = iad1tya.echo.music.utils.ComposeToImage.saveBitmapAsFile(
+                                        context = context,
+                                        bitmap = bitmap,
+                                        fileName = "share_${song.id}"
+                                    )
+                                    
+                                    val intent = Intent("com.instagram.share.ADD_TO_STORY").apply {
+                                        type = "image/png"
+                                        putExtra("interactive_asset_uri", uri)
+                                        putExtra("content_url", "https://share.echomusic.fun/watch?v=${song.id}")
+                                        putExtra("top_background_color", "#0B0B0F")
+                                        putExtra("bottom_background_color", "#000000")
+                                        
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        setPackage("com.instagram.android")
+                                    }
+                                    
+                                    context.grantUriPermission("com.instagram.android", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    val textIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, "https://share.echomusic.fun/watch?v=${song.id}")
+                                    }
+                                    context.startActivity(Intent.createChooser(textIntent, "Share Link"))
+                                }
+                                onDismiss()
+                            }
+                        }
                     )
                 ),
                 columns = 3,
@@ -412,7 +466,7 @@ fun SongMenu(
         item {
             Material3MenuGroup(
                 items = listOfNotNull(
-                    if (listenTogetherManager != null && listenTogetherManager.isGuestPlaybackRestricted) {
+                    if (listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.suggest_to_host)) },
                             icon = {
@@ -863,15 +917,7 @@ fun SongMenu(
                             },
                             onClick = {
                                 refetchIconDegree -= 360
-                                cacheViewModel.removeSongFromCache(song.id)
-                                androidx.media3.exoplayer.offline.DownloadService.sendRemoveDownload(context, iad1tya.echo.music.playback.ExoDownloadService::class.java, song.id, false)
-                                val intent = android.content.Intent(context, iad1tya.echo.music.playback.MusicService::class.java).apply {
-                                    action = "iad1tya.echo.music.ACTION_CLEAR_SONG_CACHE"
-                                    putExtra("songId", song.id)
-                                }
-                                context.startService(intent)
                                 scope.launch(Dispatchers.IO) {
-                                    database.query { deleteFormat(song.id) }
                                     YouTube.queue(listOf(song.id)).onSuccess {
                                         val newSong = it.firstOrNull()
                                         if (newSong != null) {

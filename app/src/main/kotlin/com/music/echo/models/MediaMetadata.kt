@@ -11,7 +11,7 @@ import iad1tya.echo.music.ui.utils.resize
 import java.io.Serializable
 import java.time.LocalDateTime
 
-enum class QueueItemSource { USER }
+enum class QueueItemSource { USER, ECHO_BRAIN }
 
 @Immutable
 data class MediaMetadata(

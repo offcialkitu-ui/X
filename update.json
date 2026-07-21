@@ -1,22 +1,21 @@
 {
-  "versionCode": 700,
-  "versionName": "7.0.0",
-  "releaseDate": "2026-07-20",
-  "apkSize": "110 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v7.0.0/MELODY_X_v7.0.0.apk",
+  "versionCode": 630,
+  "versionName": "6.3.0",
+  "releaseDate": "2026-07-15",
+  "apkSize": "108 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.3.0/MELODY_X_v6.3.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
-      "New Base Architecture: Synchronized with the latest Echo Music upstream",
-      "Enhanced Performance: Faster indexing and smoother playback transitions",
-      "Melody X Branding: Re-applied signature UI elements"
+      "New Minimalist Settings Layout",
+      "Optimized Audiophile X-Engine controls"
     ],
     "improvements": [
-      "Optimized resource management",
-      "Updated InnerTube engine for better compatibility"
+      "Removed donation prompts and clutter",
+      "Fixed UI spacing in Player Settings"
     ],
     "bugFixes": [
-      "Resolved various stability issues from previous builds"
+      "Resolved background padding issues on large screens"
     ]
   }
 }

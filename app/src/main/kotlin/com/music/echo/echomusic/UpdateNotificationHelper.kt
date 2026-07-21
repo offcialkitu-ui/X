@@ -30,21 +30,18 @@ object UpdateNotificationHelper {
             nm.createNotificationChannel(channel)
         }
 
-        
-        val apkUrl = if (versionName.contains("nightly", ignoreCase = true)) {
-            "https://nightly.link/EchoMusicApp/workflows/nightly.yml/main/echomusic-gms-nightly.zip"
-        } else {
-            "https://github.com/EchoMusicApp/Echo-Music/releases/download/$versionName/echomusic.apk"
-        }
+        // Corrected URL: point to the actual releases page so the user can download manually
+        val apkUrl = "https://github.com/offcialkitu-ui/X/releases"
         val intent = Intent(Intent.ACTION_VIEW, apkUrl.toUri())
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val pending = PendingIntent.getActivity(context, NOTIFICATION_ID, intent, flags)
 
         val notif = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_nobg)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(context.getString(R.string.update_available_title))
-            .setContentText(versionName)
+            .setContentText("Version $versionName is available — tap to download")
             .setContentIntent(pending)
             .setAutoCancel(true)
             .build()

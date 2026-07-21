@@ -400,7 +400,7 @@ fun SearchScreen(
                                 onClick = { selectedTabIndex = 1 },
                                 selectedContentColor = MaterialTheme.colorScheme.primary,
                                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                text = { Text("Echo Chart") }
+                                text = { Text(stringResource(R.string.tab_Suggestions)) }
                             )
                             Tab(
                                 selected = selectedTabIndex == 2,
@@ -409,7 +409,6 @@ fun SearchScreen(
                                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 text = { Text(stringResource(R.string.tab_album)) }
                             )
-
                         }
                     }
                 }

@@ -2,11 +2,20 @@
 
 package iad1tya.echo.music.ui.screens.settings
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -17,28 +26,35 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.ripple
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.withStyle
 import androidx.navigation.NavController
 import iad1tya.echo.music.BuildConfig
 import iad1tya.echo.music.LocalPlayerAwareWindowInsets
@@ -46,21 +62,14 @@ import iad1tya.echo.music.R
 import iad1tya.echo.music.ui.component.IconButton
 import iad1tya.echo.music.ui.utils.backToMain
 
-import androidx.compose.ui.platform.LocalContext
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
-import android.os.Build
-import android.widget.Toast
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
     onBack: (() -> Unit)? = null,
-highlightKey: String? = null) {
+    highlightKey: String? = null
+) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
@@ -68,7 +77,7 @@ highlightKey: String? = null) {
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Black,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             LargeTopAppBar(
@@ -78,6 +87,7 @@ highlightKey: String? = null) {
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        color = Color.White
                     )
                 },
                 navigationIcon = {
@@ -85,13 +95,18 @@ highlightKey: String? = null) {
                         onClick = { onBack?.invoke() ?: navController.navigateUp() },
                         onLongClick = navController::backToMain,
                     ) {
-                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                        Icon(
+                            painterResource(R.drawable.arrow_back), 
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                 },
                 windowInsets = TopAppBarDefaults.windowInsets,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    containerColor = Color.Black,
+                    scrolledContainerColor = Color(0xFF0B0B0F),
+                    titleContentColor = Color.White
                 ),
                 scrollBehavior = scrollBehavior,
             )
@@ -116,235 +131,248 @@ highlightKey: String? = null) {
             item { AboutAppCard() }
 
             item {
-                AboutSectionCard(title = "Developer") {
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.website),
-                        title = "Website",
-                        subtitle = "iad1tya.cyou",
-                        onClick = { uriHandler.openUri("https://iad1tya.cyou") },
+                AboutSectionCard(title = "Summary") {
+                    Text(
+                        text = "MelodyX is a high-performance, premium music streaming experience built for audiophiles. With a focus on speed, elegant design, and seamless integration, it delivers ad-free music with advanced features like Melody Brain AI and word-by-word synchronized lyrics.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = TextAlign.Start
                     )
+                }
+            }
+
+            item {
+                AboutSectionCard(title = "Developer") {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Created by KITU",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8B5CF6)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "A passionate developer with over 2.5 years of expertise in Python, Java, and C++. KITU focuses on building efficient, user-centric applications with cutting-edge technology and modern design principles.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
                     AboutDivider()
                     AboutActionRow(
                         icon = painterResource(R.drawable.ic_instagram_new),
                         title = "Instagram",
-                        subtitle = "@iad1tya",
-                        onClick = { uriHandler.openUri("https://instagram.com/iad1tya") },
+                        subtitle = "@codexkitu",
+                        onClick = { uriHandler.openUri("https://www.instagram.com/codexkitu?igsh=czEyN245czRqaTlx") },
                     )
                     AboutDivider()
                     AboutActionRow(
                         icon = painterResource(R.drawable.ic_x_new),
                         title = "X (Twitter)",
-                        subtitle = "@xad1tya",
-                        onClick = { uriHandler.openUri("https://x.com/xad1tya") },
-                    )
-                }
-            }
-
-            item {
-                AboutSectionCard(title = "Support") {
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.coffee),
-                        title = "Buy Me a Coffee",
-                        subtitle = "buymeacoffee.com/iad1tya",
-                        onClick = { uriHandler.openUri("https://buymeacoffee.com/iad1tya") },
+                        subtitle = "@KAUSHIKBORav",
+                        onClick = { uriHandler.openUri("https://x.com/KAUSHIKBORav") },
                     )
                     AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.ic_patreon_new),
-                        title = "Patreon",
-                        subtitle = "patreon.com/cw/iad1tya",
-                        onClick = { uriHandler.openUri("https://www.patreon.com/cw/iad1tya") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.upi_new),
-                        title = "UPI",
-                        subtitle = "iad1tya@upi",
-                        onClick = { uriHandler.openUri("https://intradeus.github.io/http-protocol-redirector/?r=upi://pay?pa=iad1tya@upi&pn=Aditya%20Yadav&am=&tn=Thank%20You%20so%20much%20for%20this%20support") },
-                    )
-                }
-            }
-
-            item {
-                AboutSectionCard(title = "App") {
                     AboutActionRow(
                         icon = painterResource(R.drawable.github),
                         title = "GitHub",
-                        subtitle = "EchoMusicApp/Echo-Music",
-                        onClick = { uriHandler.openUri("https://github.com/EchoMusicApp/Echo-Music") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.ic_discord_new),
-                        title = "Discord",
-                        subtitle = "discord.gg/EcfV3AxH5c",
-                        onClick = { uriHandler.openUri("https://discord.gg/EcfV3AxH5c") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.ic_telegram_new),
-                        title = "Telegram",
-                        subtitle = "t.me/EchoMusicApp",
-                        onClick = { uriHandler.openUri("https://t.me/EchoMusicApp") },
+                        subtitle = "kituontop69-cell",
+                        onClick = { uriHandler.openUri("https://github.com/kituontop69-cell") },
                     )
                 }
             }
-
-            item {
-                AboutSectionCard(title = "Our Services") {
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.website),
-                        title = "Echo Canvas",
-                        subtitle = "canvas.echomusic.fun",
-                        onClick = { uriHandler.openUri("https://canvas.echomusic.fun/") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.website),
-                        title = "Echo Lossless",
-                        subtitle = "lossless.echomusic.fun",
-                        onClick = { uriHandler.openUri("https://lossless.echomusic.fun/") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.website),
-                        title = "Echo Charts",
-                        subtitle = "charts.echomusic.fun",
-                        onClick = { uriHandler.openUri("https://charts.echomusic.fun/") },
-                    )
-                }
-            }
-
         }
     }
 }
 
 @Composable
 private fun AboutAppCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    val infiniteTransition = rememberInfiniteTransition(label = "premium_visuals")
+    
+    // Slow 18-second rotation for the overall gradient
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(18000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        label = "rotation"
+    )
+
+    // Pulse animation traveling around the border
+    val pulseProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulse"
+    )
+
+    val electricPurple = Color(0xFF8B5CF6)
+    val neonBlue = Color(0xFF3B82F6)
+    val cyan = Color(0xFF06B6D4)
+    val magenta = Color(0xFFD946EF)
+    
+    val premiumColors = listOf(electricPurple, neonBlue, cyan, magenta, electricPurple)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
+        // Soft, diffused ambient glow (30% opacity, 8px blur equivalent)
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth(0.96f)
+                .height(190.dp)
+                .graphicsLayer { rotationZ = rotation }
+                .blur(8.dp)
+                .alpha(0.35f)
+        ) {
+            drawRoundRect(
+                brush = Brush.sweepGradient(premiumColors),
+                style = Stroke(width = 12.dp.toPx()),
+                cornerRadius = CornerRadius(30.dp.toPx())
+            )
+        }
+
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 28.dp, horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .drawWithContent {
+                    drawContent()
+                    
+                    // Very thin 1.5px glowing border
+                    val strokeWidth = 1.5.dp.toPx()
+                    drawRoundRect(
+                        brush = Brush.sweepGradient(
+                            colors = premiumColors,
+                            center = center
+                        ),
+                        style = Stroke(width = strokeWidth),
+                        cornerRadius = CornerRadius(28.dp.toPx())
+                    )
+                    
+                    // Traveling light pulse effect
+                    val pulseBrush = Brush.sweepGradient(
+                        0f to Color.Transparent,
+                        pulseProgress to Color.White.copy(alpha = 0.4f),
+                        (pulseProgress + 0.1f).coerceAtMost(1f) to Color.Transparent,
+                        center = center
+                    )
+                    drawRoundRect(
+                        brush = pulseBrush,
+                        style = Stroke(width = strokeWidth * 1.5f),
+                        cornerRadius = CornerRadius(28.dp.toPx())
+                    )
+                },
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF0B0B0F), // Matte Black
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
-            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-            
-            var isEasterEggActive by remember { mutableStateOf(false) }
-            val rotation by animateFloatAsState(
-                targetValue = if (isEasterEggActive) 180f else 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "flip"
-            )
-            
-            val interactionSource = remember { MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val scale by animateFloatAsState(
-                targetValue = if (isPressed) 0.85f else 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "scale"
-            )
-
+            // Content with a glassmorphism feel (subtle gradient overlay)
             Box(
                 modifier = Modifier
-                    .size(100.dp)
-                    .graphicsLayer {
-                        rotationY = rotation
-                        scaleX = scale
-                        scaleY = scale
-                        cameraDistance = 12f * density
-                    }
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = { isEasterEggActive = !isEasterEggActive }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (rotation <= 90f) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_launcher_nobg),
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(if (isDark) Color.White else Color(0xFFEA3829)),
-                        modifier = Modifier.fillMaxSize()
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.03f), Color.Transparent)
+                        )
                     )
-                } else {
-                    coil3.compose.AsyncImage(
-                        model = "https://avatars.githubusercontent.com/u/147871321?v=4",
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { rotationY = 180f }, // Un-flip the backside image
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                }
-            }
-            
-            Spacer(Modifier.height(4.dp))
-            
-            Text(
-                text = if (rotation <= 90f) "Echo Music" else "Developed by Aditya",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(vertical = 32.dp, horizontal = 24.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = BuildConfig.VERSION_NAME,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    var isEasterEggActive by remember { mutableStateOf(false) }
+                    val flipRotation by animateFloatAsState(
+                        targetValue = if (isEasterEggActive) 180f else 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "flip"
                     )
-                }
-                if (BuildConfig.DEBUG) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.10f),
+                    
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+                    val scale by animateFloatAsState(
+                        targetValue = if (isPressed) 0.92f else 1f,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        label = "scale"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .graphicsLayer {
+                                rotationY = flipRotation
+                                scaleX = scale
+                                scaleY = scale
+                                cameraDistance = 15f * density
+                            }
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.2f))
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = { isEasterEggActive = !isEasterEggActive }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "DEBUG",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        )
+                        if (flipRotation <= 90f) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_launcher_nobg),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            coil3.compose.AsyncImage(
+                                model = "https://avatars.githubusercontent.com/u/147871321?v=4",
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer { rotationY = 180f },
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        }
                     }
-                } else {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
+                    
+                    Spacer(Modifier.height(4.dp))
+                    
+                    Text(
+                        text = if (flipRotation <= 90f) "MELODY X" else "Created by KITU",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        letterSpacing = 0.5.sp
+                    )
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = BuildConfig.ARCHITECTURE.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.White.copy(alpha = 0.05f),
+                            border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f))
+                        ) {
+                            Text(
+                                text = BuildConfig.VERSION_NAME,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -362,15 +390,16 @@ private fun AboutSectionCard(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 6.dp),
+            color = Color(0xFF8B5CF6).copy(alpha = 0.8f),
+            modifier = Modifier.padding(start = 8.dp),
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = Color(0xFF0B0B0F),
             ),
+            border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.05f)),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Column(
@@ -395,14 +424,14 @@ private fun AboutActionRow(
         animationSpec = spring(stiffness = Spring.StiffnessHigh),
         label = "rowScale",
     )
-    val tint = MaterialTheme.colorScheme.primary
+    val tint = Color(0xFF8B5CF6)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 6.dp, vertical = 2.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = ripple(),
@@ -415,16 +444,16 @@ private fun AboutActionRow(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Surface(
-                modifier = Modifier.size(42.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = tint.copy(alpha = 0.10f),
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = tint.copy(alpha = 0.12f),
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Icon(
                         painter = icon,
                         contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        tint = tint,
+                        modifier = Modifier.size(20.dp),
+                        tint = tint.copy(alpha = 0.9f),
                     )
                 }
             }
@@ -436,7 +465,7 @@ private fun AboutActionRow(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -444,7 +473,7 @@ private fun AboutActionRow(
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color.White.copy(alpha = 0.5f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -453,8 +482,8 @@ private fun AboutActionRow(
             Icon(
                 painter = painterResource(R.drawable.arrow_forward),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                modifier = Modifier.size(16.dp),
+                tint = Color.White.copy(alpha = 0.3f),
             )
         }
     }
@@ -463,8 +492,8 @@ private fun AboutActionRow(
 @Composable
 private fun AboutDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 78.dp, end = 20.dp),
+        modifier = Modifier.padding(start = 72.dp, end = 20.dp),
         thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+        color = Color.White.copy(alpha = 0.05f),
     )
 }

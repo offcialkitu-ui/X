@@ -19,9 +19,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -63,23 +60,25 @@ constructor(
             return LyricsWithProvider(cached.lyrics, cached.providerName)
         }
 
+        
+        
         val isNetworkAvailable = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
+            
             true
         }
         
         if (!isNetworkAvailable) {
+            
             return LyricsWithProvider(LYRICS_NOT_FOUND, "Unknown")
         }
 
-        val providers = resolveLyricsProviders().filter { it.isEnabled(context) }
-        if (providers.isEmpty()) return LyricsWithProvider(LYRICS_NOT_FOUND, "Unknown")
-
-        return coroutineScope {
-            val channel = Channel<LyricsWithProvider?>(providers.size)
-            providers.forEach { provider ->
-                launch {
+        val providers = resolveLyricsProviders()
+        val scope = CoroutineScope(SupervisorJob())
+        val deferred = scope.async {
+            for (provider in providers) {
+                if (provider.isEnabled(context)) {
                     try {
                         val result = provider.getLyrics(
                             mediaMetadata.id,
@@ -89,40 +88,22 @@ constructor(
                             mediaMetadata.album?.title,
                         )
                         result.onSuccess { lyrics ->
-                            if (lyrics != LYRICS_NOT_FOUND && lyrics.isNotBlank()) {
-                                channel.send(LyricsWithProvider(lyrics, provider.name))
-                            } else {
-                                channel.send(null)
-                            }
+                            return@async LyricsWithProvider(lyrics, provider.name)
                         }.onFailure {
                             reportException(it)
-                            channel.send(null)
                         }
                     } catch (e: Exception) {
+                        
                         reportException(e)
-                        channel.send(null)
                     }
                 }
             }
-
-            var responses = 0
-            val receivedUnsynced = mutableListOf<LyricsWithProvider>()
-
-            while (responses < providers.size) {
-                val result = channel.receive()
-                responses++
-                if (result != null) {
-                    val isSynced = result.lyrics.trimStart().startsWith("[")
-                    if (isSynced) {
-                        coroutineContext.cancelChildren()
-                        return@coroutineScope result
-                    } else {
-                        receivedUnsynced.add(result)
-                    }
-                }
-            }
-            return@coroutineScope receivedUnsynced.firstOrNull() ?: LyricsWithProvider(LYRICS_NOT_FOUND, "Unknown")
+            return@async LyricsWithProvider(LYRICS_NOT_FOUND, "Unknown")
         }
+
+        val result = deferred.await()
+        scope.cancel()
+        return result
     }
 
     suspend fun getAllLyrics(
@@ -143,36 +124,38 @@ constructor(
             return
         }
 
+        
+        
         val isNetworkAvailable = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
+            
             true
         }
         
         if (!isNetworkAvailable) {
+            
             return
         }
 
-        val allResult = java.util.concurrent.CopyOnWriteArrayList<LyricsResult>()
+        val allResult = mutableListOf<LyricsResult>()
         val providers = resolveLyricsProviders()
         currentLyricsJob = CoroutineScope(SupervisorJob()).launch {
-            val jobs = providers.mapNotNull { provider ->
+            providers.forEach { provider ->
                 if (provider.isEnabled(context)) {
-                    launch {
-                        try {
-                            provider.getAllLyrics(mediaId, songTitle, songArtists, duration, album) { lyrics ->
-                                val result = LyricsResult(provider.name, lyrics)
-                                allResult += result
-                                callback(result)
-                            }
-                        } catch (e: Exception) {
-                            reportException(e)
+                    try {
+                        provider.getAllLyrics(mediaId, songTitle, songArtists, duration, album) { lyrics ->
+                            val result = LyricsResult(provider.name, lyrics)
+                            allResult += result
+                            callback(result)
                         }
+                    } catch (e: Exception) {
+                        
+                        reportException(e)
                     }
-                } else null
+                }
             }
-            jobs.forEach { it.join() }
-            cache.put(cacheKey, allResult.toList())
+            cache.put(cacheKey, allResult)
         }
 
         currentLyricsJob?.join()
