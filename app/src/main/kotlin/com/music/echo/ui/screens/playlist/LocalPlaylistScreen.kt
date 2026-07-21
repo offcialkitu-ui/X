@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -187,7 +188,7 @@ fun LocalPlaylistScreen(
 
     val playlist by viewModel.playlist.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
-    val suggestions by viewModel.suggestions.collectAsState()
+
     val mutableSongs = remember { mutableStateListOf<PlaylistSong>() }
     val playlistLength =
         remember(songs) {
@@ -755,46 +756,7 @@ fun LocalPlaylistScreen(
                 }
             }
 
-            if (suggestions.isNotEmpty() && editable && !isSearching && !inSelectMode) {
-                item {
-                    Text(
-                        text = stringResource(R.string.suggestions),
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
-                    )
-                }
-                itemsIndexed(
-                    items = suggestions,
-                    key = { _, item -> "suggestion_${item.id}" }
-                ) { index, song ->
-                    YouTubeListItem(
-                        item = song,
-                        isActive = song.id == mediaMetadata?.id,
-                        isPlaying = isPlaying,
-                        shape = listItemShape(
-                            index = index,
-                            count = suggestions.size
-                        ),
-                        trailingContent = {
-                            IconButton(onClick = { viewModel.addSuggestedSong(song) }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.add),
-                                    contentDescription = null
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-                                    playerConnection.playQueue(
-                                        YouTubeQueue.radio(song.toMediaMetadata())
-                                    )
-                                }
-                            )
-                    )
-                }
-            }
+
 
             item(key = "bottom_spacer") {
                 Spacer(Modifier.height(50.dp))
@@ -952,6 +914,7 @@ fun LocalPlaylistHeader(
     val menuState = LocalMenuState.current
     val syncUtils = LocalSyncUtils.current
     val scope = rememberCoroutineScope()
+    var showAiModifyDialog by rememberSaveable { mutableStateOf(false) }
 
     val playlistLength =
         remember(songs) {
@@ -1121,12 +1084,18 @@ fun LocalPlaylistHeader(
         
         Box(
             modifier = Modifier
-                .padding(horizontal = 48.dp)
-                .padding(bottom = 24.dp)
                 .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(8.dp))
+                .padding(bottom = 24.dp),
+            contentAlignment = Alignment.Center
         ) {
+            Box(
+                modifier = Modifier
+                    .then(
+                        if (LocalConfiguration.current.screenWidthDp > 600) Modifier.size(300.dp)
+                        else Modifier.fillMaxWidth().padding(horizontal = 48.dp).aspectRatio(1f)
+                    )
+                    .clip(RoundedCornerShape(8.dp))
+            ) {
             when (playlist.thumbnails.size) {
                 0 -> Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -1273,6 +1242,7 @@ fun LocalPlaylistHeader(
                 }
             }
         }
+        }
 
         
         Text(
@@ -1417,6 +1387,7 @@ fun LocalPlaylistHeader(
                                 }
                             },
                             onDelete = onshowDeletePlaylistDialog,
+                            onModifyWithAi = { showAiModifyDialog = true },
                             onDownload = {
                                 when (downloadState) {
                                     Download.STATE_COMPLETED -> onShowRemoveDownloadDialog()
@@ -1507,7 +1478,17 @@ fun LocalPlaylistHeader(
             )
         }
     }
+
+    if (showAiModifyDialog) {
+        AiModifyPlaylistDialog(
+            playlistId = playlist.id,
+            currentSongs = songs,
+            onDismiss = { showAiModifyDialog = false }
+        )
+    }
 }
+
+
 
 @Composable
 private fun MetadataChip(

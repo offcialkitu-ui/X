@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -62,6 +65,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -92,7 +96,9 @@ import iad1tya.echo.music.constants.SongSortTypeKey
 import iad1tya.echo.music.constants.YtmSyncKey
 import iad1tya.echo.music.db.entities.Song
 import iad1tya.echo.music.extensions.toMediaItem
+import iad1tya.echo.music.models.MediaMetadata
 import iad1tya.echo.music.playback.ExoDownloadService
+import iad1tya.echo.music.playback.PlayerConnection
 import iad1tya.echo.music.playback.queues.ListQueue
 import iad1tya.echo.music.ui.component.DefaultDialog
 import iad1tya.echo.music.ui.component.DraggableScrollbar
@@ -112,6 +118,7 @@ import iad1tya.echo.music.utils.rememberEnumPreference
 import iad1tya.echo.music.utils.rememberPreference
 import iad1tya.echo.music.viewmodels.AutoPlaylistViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -125,9 +132,9 @@ fun AutoPlaylistScreen(
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
-    val playerConnection = LocalPlayerConnection.current ?: return
-    val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val playerConnection = LocalPlayerConnection.current
+    val isPlaying by (playerConnection?.isEffectivelyPlaying ?: flowOf(false)).collectAsState(false)
+    val mediaMetadata by (playerConnection?.mediaMetadata ?: flowOf<MediaMetadata?>(null)).collectAsState(null)
     val playlist = when (viewModel.playlist) {
         "liked" -> stringResource(R.string.liked)
         "uploaded" -> stringResource(R.string.uploaded_playlist)
@@ -336,6 +343,7 @@ fun AutoPlaylistScreen(
                                 downloadState = downloadState,
                                 onShowRemoveDownloadDialog = { showRemoveDownloadDialog = true },
                                 menuState = menuState,
+                                playerConnection = playerConnection,
                                 modifier = Modifier.animateItem()
                             )
                         }
@@ -417,9 +425,9 @@ fun AutoPlaylistScreen(
                                         if (inSelectMode) {
                                             onCheckedChange(song.id !in selection)
                                         } else if (song.song.id == mediaMetadata?.id) {
-                                            playerConnection.togglePlayPause()
+                                            playerConnection?.togglePlayPause()
                                         } else {
-                                            playerConnection.playQueue(
+                                            playerConnection?.playQueue(
                                                 ListQueue(
                                                     title = playlist,
                                                     items = songs!!.map { it.toMediaItem() },
@@ -502,10 +510,7 @@ fun AutoPlaylistScreen(
                         )
                     }
                     else -> {
-                        Text(
-                            text = playlist,
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        // Title is removed from the top bar
                     }
                 }
             },
@@ -580,6 +585,11 @@ fun AutoPlaylistScreen(
                         )
                     }
                 }
+            },
+            colors = if (!isSearching && !inSelectMode) {
+                androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            } else {
+                androidx.compose.material3.TopAppBarDefaults.topAppBarColors()
             }
         )
     }
@@ -593,31 +603,50 @@ private fun AutoPlaylistHeader(
     downloadState: Int,
     onShowRemoveDownloadDialog: () -> Unit,
     menuState: iad1tya.echo.music.ui.component.MenuState,
+    playerConnection: PlayerConnection?,
     modifier: Modifier = Modifier
 ) {
-    val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(Modifier.height(50.dp))
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val systemBarsTopPadding = androidx.compose.foundation.layout.WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
+    val headerOffset = with(density) {
+        -(systemBarsTopPadding + 64.dp).roundToPx()
+    }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        if (songs.isNotEmpty()) {
+            iad1tya.echo.music.ui.component.OnlineBlur(
+                thumbnailUrl = songs.getOrNull(0)?.thumbnailUrl ?: "",
+                modifier = Modifier
+                    .matchParentSize()
+                    .offset { IntOffset(0, headerOffset) }
+            )
+        }
+        
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(50.dp))
 
         
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 48.dp)
+                .padding(horizontal = 48.dp),
+            contentAlignment = Alignment.Center
         ) {
             AsyncImage(
                 model = songs[0].thumbnailUrl,
                 contentDescription = null,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
+                    .then(
+                        if (LocalConfiguration.current.screenWidthDp > 600) Modifier.size(300.dp)
+                        else Modifier.fillMaxWidth().aspectRatio(1f)
+                    )
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
@@ -630,15 +659,6 @@ private fun AutoPlaylistHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 32.dp)
         ) {
-            if (name == stringResource(R.string.liked)) {
-                Icon(
-                    painter = painterResource(R.drawable.favorite_border),
-                    contentDescription = null,
-                    modifier = Modifier.size(30.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.width(8.dp))
-            }
             Text(
                 text = name,
                 style = MaterialTheme.typography.headlineMedium,
@@ -665,7 +685,7 @@ private fun AutoPlaylistHeader(
             
             androidx.compose.material3.Button(
                 onClick = {
-                    playerConnection.playQueue(
+                    playerConnection?.playQueue(
                         ListQueue(
                             title = name,
                             items = songs.shuffled().map { it.toMediaItem() },
@@ -705,7 +725,7 @@ private fun AutoPlaylistHeader(
             
             androidx.compose.material3.Button(
                 onClick = {
-                    playerConnection.playQueue(
+                    playerConnection?.playQueue(
                         ListQueue(
                             title = name,
                             items = songs.map { it.toMediaItem() },
@@ -747,7 +767,7 @@ private fun AutoPlaylistHeader(
                         AutoPlaylistMenu(
                             downloadState = downloadState,
                             onQueue = {
-                                playerConnection.addToQueue(
+                                playerConnection?.addToQueue(
                                     songs.map { it.toMediaItem() }
                                 )
                             },
@@ -846,6 +866,7 @@ private fun AutoPlaylistHeader(
                 collapsedMaxLines = 3
             )
         }
+    }
     }
 }
 

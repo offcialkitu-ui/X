@@ -106,7 +106,6 @@ object YTPlayerUtils {
         val format: PlayerResponse.StreamingData.Format,
         val streamUrl: String,
         val streamExpiresInSeconds: Int,
-        val isSaavnStream: Boolean = false,
     )
     
     suspend fun playerResponseForPlayback(
@@ -125,7 +124,6 @@ object YTPlayerUtils {
         } ?: true
 
         var hasShownLosslessToast = false
-        var hasShownSaavnToast = false
         var hasShownOpusToast = false
 
         suspend fun tryOpus(): Result<PlaybackData> {
@@ -142,211 +140,63 @@ object YTPlayerUtils {
             return firstAttempt
         }
 
-        suspend fun trySaavn(): Result<PlaybackData> {
-            var lastException: Exception? = null
-            
-            Timber.tag(TAG).d("JioSaavn streaming enabled (via SAAVN) — trying Saavn for videoId=$videoId")
-            try {
-                val metadata = playerResponseForMetadata(videoId).getOrNull()
-                val title = knownTitle ?: metadata?.videoDetails?.title.orEmpty()
-                val artist = knownArtist ?: metadata?.videoDetails?.author?.replace(" - Topic", "").orEmpty()
-
-                if (title.isBlank()) throw Exception("Title is blank")
-
-                val searchTerms = qobuzSearchTerms(artist, title)
-                val ytDuration = knownDurationMs?.let { it / 1000L } ?: metadata?.videoDetails?.lengthSeconds?.toLongOrNull() ?: 0L
-
-                for (query in searchTerms) {
-                    Timber.tag(TAG).d("Trying Saavn query: \"$query\"")
-                    val saavnRes = kotlinx.coroutines.withTimeoutOrNull(10000L) {
-                        val songs = com.music.jiosaavn.SaavnService.searchSongs(query).getOrNull()
-                        if (songs.isNullOrEmpty()) return@withTimeoutOrNull null
-
-                        fun normalize(s: String): Set<String> =
-                            s.lowercase()
-                                .replace(Regex("[^a-z0-9\\s]"), " ")
-                                .split(Regex("\\s+"))
-                                .filter { it.length > 1 }
-                                .toSet()
-
-                        fun wordOverlapScore(a: String, b: String, maxPts: Int): Int {
-                            val setA = normalize(a)
-                            val setB = normalize(b)
-                            if (setA.isEmpty() || setB.isEmpty()) return 0
-                            val common = setA.intersect(setB).size
-                            val ratio  = common.toDouble() / maxOf(setA.size, setB.size)
-                            return (ratio * maxPts).toInt()
-                        }
-
-                        data class ScoredSong(val song: com.music.jiosaavn.SaavnSong, val score: Int)
-
-                        val scored = songs.map { candidate ->
-                            var score = 0
-                            score += wordOverlapScore(title, candidate.name, maxPts = 60)
-                            val saavnDuration = candidate.duration?.toLong() ?: 0L
-                            if (ytDuration > 0 && saavnDuration > 0) {
-                                val diff = Math.abs(ytDuration - saavnDuration)
-                                score += when {
-                                    diff <= 5  -> 30
-                                    diff <= 15 -> 15
-                                    else       -> 0
-                                }
-                            }
-                            val saavnArtists = candidate.artists.primary.joinToString(" ") { it.name }
-                            score += wordOverlapScore(artist, saavnArtists, maxPts = 20)
-                            if (candidate.explicitContent) score += 5
-                            
-                            // Check if title contains version info like "remix" or "live"
-                            val titleLower = title.lowercase()
-                            val candidateLower = candidate.name.lowercase()
-                            if (titleLower.contains("remix") && !candidateLower.contains("remix")) score -= 20
-                            if (titleLower.contains("live") && !candidateLower.contains("live")) score -= 20
-                            
-                            ScoredSong(candidate, score)
-                        }
-
-                        val MIN_CONFIDENCE = 35 // Lowered from 40
-                        val bestSong = scored.maxByOrNull { it.score }
-                            ?.takeIf { it.score >= MIN_CONFIDENCE }
-                            ?.song
-
-                        if (bestSong == null) return@withTimeoutOrNull null
-
-                        Timber.tag(TAG).d("Saavn best match: id=${bestSong.id}, name=${bestSong.name}")
-
-                        val streamUrl = com.music.jiosaavn.SaavnService.getBestStreamUrl(bestSong.id, "320kbps")
-                        if (streamUrl.isNullOrBlank()) return@withTimeoutOrNull null
-
-                        val format = PlayerResponse.StreamingData.Format(
-                            itag = 0,
-                            url = streamUrl,
-                            mimeType = "audio/mp4; codecs=\"mp4a.40.2\"",
-                            bitrate = 320_000,
-                            width = null,
-                            height = null,
-                            contentLength = null,
-                            quality = "320kbps",
-                            fps = null,
-                            qualityLabel = null,
-                            averageBitrate = null,
-                            audioQuality = "320kbps",
-                            approxDurationMs = null,
-                            audioSampleRate = null,
-                            audioChannels = null,
-                            loudnessDb = null,
-                            lastModified = null,
-                            signatureCipher = null,
-                            cipher = null,
-                            audioTrack = null
-                        )
-
-                        val saavnImage = bestSong.image.lastOrNull()?.url ?: bestSong.image.firstOrNull()?.url
-                        
-                        val updatedVideoDetails = metadata?.videoDetails?.copy(
-                            thumbnail = com.music.innertube.models.Thumbnails(
-                                thumbnails = listOf(
-                                    com.music.innertube.models.Thumbnail(url = saavnImage ?: "", width = 500, height = 500)
-                                )
-                            )
-                        ) ?: com.music.innertube.models.response.PlayerResponse.VideoDetails(
-                            videoId = videoId, title = title, author = artist, lengthSeconds = ytDuration.toString(),
-                            channelId = "", musicVideoType = null, viewCount = null,
-                            thumbnail = com.music.innertube.models.Thumbnails(listOf(com.music.innertube.models.Thumbnail(url = saavnImage ?: "", width = 500, height = 500)))
-                        )
-
-                        PlaybackData(
-                            audioConfig = metadata?.playerConfig?.audioConfig,
-                            videoDetails = updatedVideoDetails,
-                            playbackTracking = metadata?.playbackTracking,
-                            format = format,
-                            streamUrl = streamUrl,
-                            streamExpiresInSeconds = 3600,
-                            isSaavnStream = true
-                        )
-                    }
-
-                    if (saavnRes != null) return Result.success(saavnRes)
-                }
-            } catch (e: Exception) {
-                lastException = e
-                Timber.tag(TAG).e(e, "Error in trySaavn")
-            }
-            
-            return Result.failure(lastException ?: Exception("Saavn resolution failed for all terms"))
-        }
-
         suspend fun tryLossless(): Result<PlaybackData> {
+            var attemptResult: Result<PlaybackData>? = null
             var lastException: Exception? = null
             try {
-                val metadata = playerResponseForMetadata(videoId).getOrNull()
-                val title = knownTitle ?: metadata?.videoDetails?.title
-                val author = knownArtist ?: metadata?.videoDetails?.author?.replace(" - Topic", "")
-                if (title != null && author != null) {
-                    val qobuzClient = iad1tya.echo.music.utils.qobuz.QobuzApiClient()
-                    val queryArtist = author
-                    val queryTitle = title
-                    val durationSeconds = metadata?.videoDetails?.lengthSeconds?.toLongOrNull()
-                    val durationMs = knownDurationMs ?: (if (durationSeconds != null) durationSeconds * 1000L else null)
-                    
-                    for (term in qobuzSearchTerms(queryArtist, queryTitle)) {
-                        Timber.tag(TAG).d("Trying Qobuz query: \"$term\"")
-                        val searchResult = runCatching { qobuzClient.search(term) }.getOrNull() ?: continue
-                        val candidates = searchResult.tracks?.items ?: continue
-                        val validCandidates = candidates.filter {
-                            val streamable = it.streamable ?: false
-                            val maxDepth = it.maximumBitDepth ?: 0
-                            streamable && maxDepth >= 16
+                attemptResult = kotlinx.coroutines.withTimeoutOrNull(15000L) {
+                    val metadata = if (knownTitle == null || knownArtist == null) playerResponseForMetadata(videoId).getOrNull() else null
+                    val title = knownTitle ?: metadata?.videoDetails?.title
+                    val author = knownArtist ?: metadata?.videoDetails?.author?.replace(" - Topic", "")
+                    if (title != null && author != null) {
+                        val track = iad1tya.echo.music.utils.LosslessAPI.search(title, author)
+                        if (track != null) {
+                            val format = com.music.innertube.models.response.PlayerResponse.StreamingData.Format(
+                                itag = 0,
+                                mimeType = "audio/flac; codecs=\"flac\"",
+                                bitrate = 1411000,
+                                audioSampleRate = 44100,
+                                contentLength = 0L,
+                                url = track.url,
+                                cipher = null,
+                                signatureCipher = null,
+                                audioQuality = "LOSSLESS",
+                                fps = null,
+                                width = null,
+                                height = null,
+                                quality = "lossless",
+                                qualityLabel = null,
+                                averageBitrate = null,
+                                approxDurationMs = null,
+                                audioChannels = null,
+                                loudnessDb = null,
+                                lastModified = null,
+                                audioTrack = null
+                            )
+                            val resolvedPlaybackData = PlaybackData(
+                                audioConfig = null,
+                                videoDetails = metadata?.videoDetails,
+                                playbackTracking = null,
+                                format = format,
+                                streamUrl = track.url,
+                                streamExpiresInSeconds = 3600
+                            )
+                            return@withTimeoutOrNull Result.success(resolvedPlaybackData)
+                        } else {
+                            throw Exception("No streamable match resolved on Lossless index")
                         }
-                        val sorted = validCandidates.sortedByDescending { confidence(queryArtist, queryTitle, durationMs, it) }
-                        for (candidate in sorted) {
-                            val score = confidence(queryArtist, queryTitle, durationMs, candidate)
-                            Timber.tag(TAG).d("Qobuz candidate score: $score for ${candidate.title}")
-                            if (score >= 0.6f) { // Using weighted score threshold
-                                val downloadData = runCatching { qobuzClient.getFileUrl(candidate.id) }.getOrNull()
-                                val url = downloadData?.url
-                                if (url != null) {
-                                    val format = PlayerResponse.StreamingData.Format(
-                                        itag = 0,
-                                        mimeType = "audio/flac; codecs=\"flac\"",
-                                        bitrate = (candidate.maximumSamplingRate * 1000 * candidate.maximumBitDepth * 2).toInt(),
-                                        audioSampleRate = (candidate.maximumSamplingRate * 1000).toInt(),
-                                        contentLength = 0L,
-                                        url = url,
-                                        cipher = null,
-                                        signatureCipher = null,
-                                        audioQuality = "LOSSLESS",
-                                        fps = null,
-                                        width = null,
-                                        height = null,
-                                        quality = "lossless",
-                                        qualityLabel = null,
-                                        averageBitrate = null,
-                                        approxDurationMs = null,
-                                        audioChannels = null,
-                                        loudnessDb = null,
-                                        lastModified = null,
-                                        audioTrack = null
-                                    )
-                                    return Result.success(PlaybackData(
-                                        audioConfig = null,
-                                        videoDetails = metadata?.videoDetails,
-                                        playbackTracking = null,
-                                        format = format,
-                                        streamUrl = url,
-                                        streamExpiresInSeconds = 3600
-                                    ))
-                                }
-                            }
-                        }
+                    } else {
+                        throw Exception("Missing title or artist for lookup")
                     }
-                } else {
-                    throw Exception("Missing title or artist for lookup")
+                }
+                if (attemptResult == null) {
+                    lastException = Exception("Timeout fetching Lossless stream")
                 }
             } catch (e: Exception) {
                 lastException = e
-                Timber.tag(TAG).e(e, "Error in tryLossless")
             }
-            return Result.failure(lastException ?: Exception("Qobuz resolution failed"))
+            
+            return attemptResult ?: Result.failure(lastException ?: Exception("Lossless resolution failed"))
         }
 
         fun showToastMsg(msg: String) {
@@ -364,46 +214,16 @@ object YTPlayerUtils {
                 val losslessRes = tryLossless()
                 if (losslessRes.isSuccess) return losslessRes
 
-                Timber.tag(TAG).e("Qobuz resolution failed, falling back to Saavn")
+                Timber.tag(TAG).e("Qobuz resolution failed, falling back to YouTube Opus")
                 if (!hasShownLosslessToast) {
                     hasShownLosslessToast = true
-                    showToastMsg(if (isDownload) "Lossless download unavailable, falling back to Saavn (320kbps)" else "Lossless stream unavailable, falling back to Saavn (320kbps)")
-                }
-
-                val saavnRes = trySaavn()
-                if (saavnRes.isSuccess) return saavnRes
-
-                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube Opus")
-                if (!hasShownSaavnToast) {
-                    hasShownSaavnToast = true
-                    showToastMsg(if (isDownload) "Lossless & Saavn unavailable, downloading Opus" else "Lossless & Saavn unavailable, playing Opus")
-                }
-
-                tryOpus()
-            }
-            AudioQuality.SAAVN -> {
-                val saavnRes = trySaavn()
-                if (saavnRes.isSuccess) return saavnRes
-
-                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube Opus")
-                if (!hasShownSaavnToast) {
-                    hasShownSaavnToast = true
-                    showToastMsg(if (isDownload) "Saavn unavailable, downloading Opus" else "Saavn unavailable, playing Opus")
+                    showToastMsg(if (isDownload) "Lossless download unavailable, falling back to Opus" else "Lossless stream unavailable, falling back to Opus")
                 }
 
                 tryOpus()
             }
             else -> {
-                val opusRes = tryOpus()
-                if (opusRes.isSuccess) return opusRes
-
-                Timber.tag(TAG).e("Opus resolution failed, falling back to Saavn")
-                if (!hasShownOpusToast) {
-                    hasShownOpusToast = true
-                    showToastMsg(if (isDownload) "Opus unavailable, downloading Saavn" else "Opus unavailable, playing Saavn")
-                }
-
-                trySaavn()
+                tryOpus()
             }
         }
     }
@@ -495,7 +315,12 @@ object YTPlayerUtils {
             
             Timber.tag(logTag).d("Age-restricted detected, using WEB_CREATOR")
             Log.i(TAG, "Age-restricted: using WEB_CREATOR for videoId=$videoId")
-            val creatorResponse = YouTube.player(videoId, playlistId, WEB_CREATOR, null, null).getOrNull()
+            val creatorResponse = YouTube.player(videoId, playlistId, WEB_CREATOR, null, null)
+                .onFailure {
+                    // Distinguish thrown request/parse failures from genuine playability
+                    // rejections (both otherwise surface as a null response downstream).
+                    Timber.tag(logTag).e(it, "player() request FAILED for WEB_CREATOR")
+                }.getOrNull()
             if (creatorResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(logTag).d("WEB_CREATOR works for age-restricted content")
                 mainPlayerResponse = creatorResponse
@@ -585,7 +410,10 @@ object YTPlayerUtils {
                 
                 val clientSigTimestamp = if (wasOriginallyAgeRestricted) null else signatureTimestamp.timestamp
                 streamPlayerResponse =
-                    YouTube.player(videoId, playlistId, client, clientSigTimestamp, clientPoToken).getOrNull()
+                    YouTube.player(videoId, playlistId, client, clientSigTimestamp, clientPoToken)
+                        .onFailure {
+                            Timber.tag(logTag).e(it, "player() request FAILED for %s", client.clientName)
+                        }.getOrNull()
             }
 
             
@@ -791,7 +619,7 @@ object YTPlayerUtils {
             ?.filter { it.isAudio && it.isOriginal }
             ?.maxByOrNull {
                 it.bitrate * when (audioQuality) {
-                    AudioQuality.OPUS, AudioQuality.SAAVN, AudioQuality.LOSSLESS -> 1
+                    AudioQuality.OPUS, AudioQuality.LOSSLESS -> 1
                 } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) 
             }
 
@@ -927,102 +755,3 @@ object YTPlayerUtils {
 }
 
 
-
-
-fun cleanSearchTerm(term: String): String {
-    return term
-        .replace(Regex("(?i)\\b(official video|music video|official audio|lyric video|lyrics|audio|video|hq|high quality)\\b"), "")
-        .replace(Regex("\\([^)]*\\)"), "")
-        .replace(Regex("\\[[^]]*\\]"), "")
-        .replace(Regex("[^\\p{L}\\p{N}\\s]"), " ")
-        .replace(Regex("\\s+"), " ")
-        .trim()
-}
-
-fun qobuzSearchTerms(artist: String, title: String): List<String> {
-    val cleanArtist = cleanSearchTerm(artist)
-    val cleanTitle = cleanSearchTerm(title)
-    
-    val terms = mutableListOf<String>()
-    
-    terms.add("$artist $title".trim())
-    
-    if (cleanArtist.isNotEmpty() && cleanTitle.isNotEmpty()) {
-        terms.add("$cleanArtist $cleanTitle".trim())
-    }
-    
-    val primary = artist.substringBefore(",").trim()
-    if (primary.isNotEmpty() && !primary.equals(artist.trim(), ignoreCase = true)) {
-        terms.add("$primary $title".trim())
-        val cleanPrimary = cleanSearchTerm(primary)
-        if (cleanPrimary.isNotEmpty() && cleanTitle.isNotEmpty()) {
-            terms.add("$cleanPrimary $cleanTitle".trim())
-        }
-    }
-    
-    return terms.distinct()
-}
-
-private fun normalize(s: String): String =
-    s.lowercase()
-        .replace(Regex("\\([^)]*\\)"), " ")
-        .replace(Regex("\\[[^]]*\\]"), " ")
-        .replace(Regex("(?i)\\b(feat\\.?|ft\\.?|featuring)\\b.*"), " ")
-        .replace(Regex("[''`]"), "")
-        .replace(Regex("[^\\p{L}\\p{N}\\p{S}\\s]"), " ")
-        .replace(Regex("\\s+"), " ")
-        .trim()
-
-private fun jaccard(a: String, b: String): Float {
-    val setA = a.split(" ").filter { it.isNotEmpty() }.toSet()
-    val setB = b.split(" ").filter { it.isNotEmpty() }.toSet()
-    if (setA.isEmpty() || setB.isEmpty()) return 0f
-    val intersection = setA.intersect(setB).size.toFloat()
-    val union = setA.union(setB).size.toFloat()
-    return intersection / union
-}
-
-private fun artistSimilarity(a: String, b: String): Float {
-    val setA = a.split(" ").filter { it.isNotEmpty() }.toSet()
-    val setB = b.split(" ").filter { it.isNotEmpty() }.toSet()
-    if (setA.isEmpty() || setB.isEmpty()) return 0f
-
-    val intersection = setA.intersect(setB)
-    val union = setA.union(setB)
-    val jaccardScore = intersection.size.toFloat() / union.size.toFloat()
-
-    val smallerSize = minOf(setA.size, setB.size)
-    val smallerFullyCovered = intersection.size == smallerSize
-    val hasDistinctiveOverlap = intersection.any { token ->
-        token.length > 3 || token.any { ch -> !ch.isLetterOrDigit() }
-    }
-
-    val coverageScore = if (smallerFullyCovered && hasDistinctiveOverlap) 1.0f else 0f
-    return maxOf(jaccardScore, coverageScore)
-}
-
-fun confidence(queryArtist: String, queryTitle: String, queryDuration: Long?, candidate: iad1tya.echo.music.utils.qobuz.QobuzTrack): Float {
-    if (!candidate.streamable) return 0f
-
-    val titleSim = jaccard(normalize(queryTitle), normalize(candidate.title))
-    val artistSim = artistSimilarity(
-        normalize(queryArtist),
-        normalize(candidate.performer?.name.orEmpty()),
-    )
-
-    val durationFactor: Float = run {
-        val queryMs = queryDuration ?: return@run 1.0f
-        if (queryMs <= 0 || candidate.duration <= 0) return@run 1.0f
-        val candidateMs = candidate.duration * 1000L
-        val drift = kotlin.math.abs(queryMs - candidateMs).toDouble() / queryMs.toDouble()
-        when {
-            drift < 0.05 -> 1.0f      
-            drift < 0.10 -> 0.90f     
-            drift < 0.20 -> 0.70f      
-            else -> 0.4f              
-        }
-    }
-
-    // Weighted average instead of product to be more resilient to minor metadata mismatches
-    return (titleSim * 0.4f + artistSim * 0.4f + durationFactor * 0.2f)
-}

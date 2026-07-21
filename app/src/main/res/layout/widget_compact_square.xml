@@ -1,53 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  MelodyX Music Player – Compact Square (2×2).
-  Used via viewMapping when widget size is small (minWidth < 180 && minHeight < 100).
-  Shows album art hero tile with overlaid play/pause.
--->
+<!-- Compact 2x2 Widget - Album art with play button overlay -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:padding="12dp"
     android:theme="@style/Theme.Widget.echomusic">
 
-    <!-- Backdrop -->
-    <ImageView
-        android:id="@+id/widget_backdrop"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:importantForAccessibility="no"
-        android:contentDescription="@null" />
-
-    <!-- Compact hero art tile (rendered at runtime with WidgetArtStudio.heroTile) -->
-    <ImageView
-        android:id="@+id/widget_compact_album_art"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:contentDescription="@string/album_art" />
-
-    <!-- Play/Pause pill – bottom center over scrim -->
+    <!-- Album Art Container -->
     <FrameLayout
-        android:id="@+id/widget_compact_play_container"
-        android:layout_width="54dp"
-        android:layout_height="54dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="12dp">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <ImageView
-            android:id="@+id/widget_compact_play_bg"
+            android:id="@+id/widget_compact_album_art"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:src="@drawable/widget_circle_solid"
-            android:contentDescription="@null" />
+            android:scaleType="centerCrop"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="@string/album_art" />
 
-        <ImageView
-            android:id="@+id/widget_compact_play_pause"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_gravity="center"
-            android:src="@drawable/ic_widget_play_low"
-            android:contentDescription="@string/play_pause" />
+        <!-- Play Button Overlay - Bottom Center -->
+        <FrameLayout
+            android:id="@+id/widget_compact_play_container"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/widget_play_button_circular">
+
+            <ImageView
+                android:id="@+id/widget_compact_play_pause"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_widget_play_low"
+                android:contentDescription="@string/play_pause" />
+        </FrameLayout>
+
     </FrameLayout>
+
 </FrameLayout>

@@ -1,44 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--
-     Widget colour tokens for MelodyX.
-     Android 12+ (API 31+): system_accent1_* pulls the user's wallpaper tint (Material You).
-     Below API 31: hardcoded fallback values (brand red #E53935 / neutral surfaces).
-    -->
+    <!-- Widget colors fallback for Android < 12 (API 31) -->
+    <!-- Material 3 Primary Container (Light) -->
+    <color name="widget_primary_container">#EADDFF</color>
+    <color name="widget_on_primary_container">#21005D</color>
 
-    <!-- ─── Text ────────────────────────────────────────────────────────────── -->
-    <!-- Primary text (song title, labels) – light theme -->
-    <color name="widget_text_primary">#FF1C1B1F</color>
-    <!-- Secondary text (artist name, timestamps) – light theme -->
-    <color name="widget_text_secondary">#FF49454F</color>
+    <!-- Material 3 Tertiary Container (Light) - For like button -->
+    <color name="widget_tertiary_container">#FFD8E4</color>
+    <color name="widget_on_tertiary_container">#31111D</color>
 
-    <!-- ─── Dynamic Color fallback (< API 31) ──────────────────────────────── -->
-    <color name="widget_accent">#FFE53935</color>
-    <color name="widget_on_accent">#FFFFFFFF</color>
+    <!-- Play button colors (Low style) -->
+    <color name="widget_play_button_low_bg">@color/widget_primary_container</color>
+    <color name="widget_play_button_low_icon">@color/widget_on_primary_container</color>
 
-    <color name="widget_backdrop_start">#FFFEF7FF</color>
-    <color name="widget_backdrop_end">#FFF3EDF7</color>
-
-    <!-- ─── Control surfaces ───────────────────────────────────────────────── -->
-    <color name="widget_control_surface">#33FFFFFF</color>
-    <color name="widget_play_bg">#FFEADDFF</color>
-    <color name="widget_play_icon">#FF21005D</color>
-
-    <!-- ─── Recognizer ─────────────────────────────────────────────────────── -->
-    <color name="widget_mic_active_bg">#FF7965AF</color>
+    <!-- Music Recognizer Widget colors (Light) -->
+    <!-- Active mic button background – deeper accent -->
+    <color name="widget_mic_active_bg">#7965AF</color>
+    <!-- Pulse ring colors (opacity variants for outward ripple animation) -->
     <color name="widget_mic_pulse_ring">#994F378B</color>
     <color name="widget_mic_pulse_ring_mid">#664F378B</color>
     <color name="widget_mic_pulse_ring_low">#334F378B</color>
-    <color name="widget_mic_pulse_ring_fade">#004F378B</color>
-
-    <!-- ─── Premium widget surfaces ────────────────────────────────────────── -->
-    <color name="widget_scrim_start">#80000000</color>
-    <color name="widget_scrim_end">#CC000000</color>
-    <color name="widget_tonal_surface">#1AFFFFFF</color>
-    <color name="widget_tonal_surface_dark">#1A000000</color>
-    <color name="widget_heart_active">#FFE53935</color>
-    <color name="widget_heart_inactive">#B0FFFFFF</color>
-
-    <!-- ─── Android 12+ system accent references (set via code) ────────────── -->
-    <!-- These are resolved at runtime via context.getColor(android.R.color.system_accent1_*) -->
+    <color name="widget_mic_pulse_ring_fade">#1A4F378B</color>
 </resources>

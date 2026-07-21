@@ -141,16 +141,47 @@ highlightKey: String? = null) {
                     )
                 )
             }
-            if ("melody brain".contains(searchLower)) {
+
+            if (aiLyricsText.lowercase().contains(searchLower)) {
                 add(
                     Material3SettingsItem(
-    isHighlighted = (highlightKey == "Melody Brain (Beta)"),
-                        icon = painterResource(R.drawable.ic_echo_brain),
-                        title = { Text("Melody Brain (Beta)") },
-                        onClick = { navController.navigate("settings/echo_brain") }
+                        isHighlighted = (highlightKey == aiLyricsText),
+                        customIcon = {
+                            Text(
+                                text = "Ai",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = if (highlightKey == aiLyricsText)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            )
+                        },
+                        title = { Text(aiLyricsText) },
+                        onClick = { navController.navigate("settings/ai") }
                     )
                 )
             }
+
+            val contributeLosslessText = stringResource(R.string.contribute_to_lossless)
+            if (contributeLosslessText.lowercase().contains(searchLower)) {
+                add(
+                    Material3SettingsItem(
+                        isHighlighted = (highlightKey == contributeLosslessText),
+                        customIcon = {
+                            Text(
+                                text = "HQ",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        title = { Text(contributeLosslessText) },
+                        onClick = { navController.navigate("settings/lossless") }
+                    )
+                )
+            }
+
             if (appearanceText.lowercase().contains(searchLower)) {
                 add(
                     Material3SettingsItem(
@@ -192,16 +223,6 @@ highlightKey: String? = null) {
                 )
             }
 
-            if (aiLyricsText.lowercase().contains(searchLower)) {
-                add(
-                    Material3SettingsItem(
-    isHighlighted = (highlightKey == aiLyricsText),
-                        icon = painterResource(R.drawable.translate),
-                        title = { Text(aiLyricsText) },
-                        onClick = { navController.navigate("settings/ai") }
-                    )
-                )
-            }
             if (privacyText.lowercase().contains(searchLower)) {
                 add(
                     Material3SettingsItem(
@@ -236,7 +257,7 @@ highlightKey: String? = null) {
                 add(
                     Material3SettingsItem(
     isHighlighted = (highlightKey == systemUpdateText),
-                        icon = painterResource(if (isUpdateAvailable) R.drawable.music_note else R.drawable.update),
+                        icon = painterResource(if (isUpdateAvailable) R.drawable.ic_launcher_nobg else R.drawable.update),
                         title = { Text(systemUpdateText) },
                         description = if (isUpdateAvailable) {
                             {

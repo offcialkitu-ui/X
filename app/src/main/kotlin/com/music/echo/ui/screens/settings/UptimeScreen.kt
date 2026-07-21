@@ -35,7 +35,7 @@ data class ServiceStatus(
     val displayUrl: () -> String = url,
     var status: Status = Status.CHECKING,
     var latencyMs: Long? = null,
-    val offlineMessage: String? = null,
+    val offlineMessage: () -> String? = { null },
     val fallbackUrls: () -> List<String> = { emptyList() }
 ) {
     enum class Status {
@@ -53,16 +53,7 @@ highlightKey: String? = null) {
     val musicServices = remember {
         mutableStateListOf(
             ServiceStatus("YouTube Music", { "https://music.youtube.com" }),
-            ServiceStatus(
-                "JioSaavn",
-                { com.music.jiosaavn.DeviceRouter.getCurrentServer() },
-                { "Server ${com.music.jiosaavn.DeviceRouter.getCurrentServerIndex() + 1}" },
-                offlineMessage = "Server hits its daily limit, we'll get you tomorrow!"
-            ),
-            ServiceStatus(
-                "Qobuz",
-                { "https://qobuz.kennyy.com.br" }
-            )
+            ServiceStatus("Lossless", { "https://lossless.echomusic.fun" })
         )
     }
 
@@ -99,7 +90,7 @@ highlightKey: String? = null) {
     val otherServices = remember {
         mutableStateListOf(
             ServiceStatus("Apple Music API", { "https://amp-api.music.apple.com" }),
-            ServiceStatus("Melody Find (Shazam)", { "https://amp.shazam.com" })
+            ServiceStatus("Echo Find (Shazam)", { "https://amp.shazam.com" })
         )
     }
 
@@ -308,7 +299,7 @@ fun ServiceStatusCard(service: ServiceStatus) {
             }
 
             androidx.compose.animation.AnimatedVisibility(
-                visible = service.status == ServiceStatus.Status.OFFLINE && service.offlineMessage != null
+                visible = service.status == ServiceStatus.Status.OFFLINE && service.offlineMessage() != null
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -323,7 +314,7 @@ fun ServiceStatusCard(service: ServiceStatus) {
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
-                            text = service.offlineMessage ?: "",
+                            text = service.offlineMessage() ?: "",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFF44336).copy(alpha = 0.8f),
                             fontWeight = FontWeight.Medium

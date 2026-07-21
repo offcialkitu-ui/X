@@ -1,21 +1,22 @@
 {
-  "versionCode": 651,
-  "versionName": "6.5.1",
-  "releaseDate": "2026-07-18",
-  "apkSize": "108 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.5.1/MELODY_X_v6.5.1.apk",
+  "versionCode": 700,
+  "versionName": "7.0.0",
+  "releaseDate": "2026-07-20",
+  "apkSize": "110 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v7.0.0/MELODY_X_v7.0.0.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
-      "Fixed Privacy Policy & Terms of Service URLs (no-www)",
-      "New Localized Appearance Modes: Glassmorphism, Solar Dynamic, and Battery Pro"
+      "New Base Architecture: Synchronized with the latest Echo Music upstream",
+      "Enhanced Performance: Faster indexing and smoother playback transitions",
+      "Melody X Branding: Re-applied signature UI elements"
     ],
     "improvements": [
-      "Butter-Smooth UI: Massive performance optimizations",
-      "Optimized MiniPlayer GPU load"
+      "Optimized resource management",
+      "Updated InnerTube engine for better compatibility"
     ],
     "bugFixes": [
-      "Fixed compilation typo in lyrics rendering"
+      "Resolved various stability issues from previous builds"
     ]
   }
 }

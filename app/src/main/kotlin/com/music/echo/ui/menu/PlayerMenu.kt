@@ -55,7 +55,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -182,8 +181,7 @@ fun PlayerMenu(
 
     val listenTogetherManager = LocalListenTogetherManager.current
     val ringtoneViewModel = iad1tya.echo.music.LocalRingtoneViewModel.current
-    val listenTogetherRoleState = listenTogetherManager?.role?.collectAsState(initial = iad1tya.echo.music.listentogether.RoomRole.NONE)
-    val isListenTogetherGuest = listenTogetherRoleState?.value == iad1tya.echo.music.listentogether.RoomRole.GUEST
+    val isListenTogetherGuest by listenTogetherManager?.guestPlaybackRestricted?.collectAsState(initial = false) ?: remember { mutableStateOf(false) }
     val pendingSuggestions by listenTogetherManager?.pendingSuggestions?.collectAsState(initial = emptyList()) ?: remember { mutableStateOf(emptyList()) }
 
     AddToPlaylistDialog(
@@ -254,14 +252,13 @@ fun PlayerMenu(
     }
 
     if (isQueueTrigger != true) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 24.dp, bottom = 6.dp),
-        ) {
-            
-            if (isCasting && castDeviceName != null) {
+        if (isCasting && castDeviceName != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 24.dp, bottom = 6.dp),
+            ) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
@@ -283,29 +280,9 @@ fun PlayerMenu(
                     )
                 }
             }
-            
-            VolumeSlider(
-                value = if (isCasting) castVolume else (systemVolume / maxSystemVolume.coerceAtLeast(1f)),
-                onValueChange = { volume ->
-                    if (isCasting) {
-                        castHandler?.setVolume(volume)
-                    } else {
-                        val newSystemVolume = (volume * maxSystemVolume).toInt()
-                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newSystemVolume, 0)
-                        systemVolume = newSystemVolume.toFloat()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                accentColor = MaterialTheme.colorScheme.primary
-            )
         }
     }
 
-    Spacer(modifier = Modifier.height(20.dp))
-
-    HorizontalDivider()
-
-    Spacer(modifier = Modifier.height(12.dp))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -374,30 +351,9 @@ fun PlayerMenu(
                             context.startActivity(android.content.Intent.createChooser(intent, null))
                             onDismiss()
                         }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_instagram_new),
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = Color(0xFFE4405F)
-                            )
-                        },
-                        text = "Premium Share",
-                        onClick = {
-                            onDismiss()
-                            val encodedTitle = java.net.URLEncoder.encode(mediaMetadata.title, "UTF-8")
-                            val encodedArtist = java.net.URLEncoder.encode(mediaMetadata.artists.joinToString(", ") { it.name }, "UTF-8")
-                            val encodedThumb = java.net.URLEncoder.encode(mediaMetadata.thumbnailUrl ?: "", "UTF-8")
-                            val shareLink = "https://share.echomusic.fun/watch?v=${mediaMetadata.id}"
-                            val encodedShare = java.net.URLEncoder.encode(shareLink, "UTF-8")
-                            
-                            navController.navigate("story_share/${mediaMetadata.id}/$encodedTitle/$encodedArtist/${mediaMetadata.explicit}?thumbnailUrl=$encodedThumb&shareUrl=$encodedShare")
-                        }
                     )
                 ),
-                columns = if (isListenTogetherGuest) 3 else 4,
+                columns = if (isListenTogetherGuest) 2 else 3,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
             )
         }
@@ -743,7 +699,7 @@ fun PlayerMenu(
                                     )
                                 },
                                 onClick = {
-                                    listenTogetherManager.requestSync()
+                                    listenTogetherManager?.requestSync()
                                     onDismiss()
                                 }
                             )

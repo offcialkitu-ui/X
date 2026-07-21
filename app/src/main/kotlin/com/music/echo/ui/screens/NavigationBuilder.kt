@@ -38,11 +38,7 @@ import iad1tya.echo.music.ui.screens.search.OnlineSearchResult
 import iad1tya.echo.music.ui.screens.search.SearchScreen
 import iad1tya.echo.music.ui.screens.settings.AboutScreen
 import iad1tya.echo.music.ui.screens.settings.AppearanceSettings
-import androidx.compose.runtime.LaunchedEffect
-import iad1tya.echo.music.ui.screens.settings.LiquidGlassSettings
-import iad1tya.echo.music.ui.screens.storyshare.StoryShareScreen
-import iad1tya.echo.music.ui.screens.storyshare.StoryShareViewModel
-import iad1tya.echo.music.ui.screens.storyshare.SongShareData
+import iad1tya.echo.music.ui.screens.settings.GlassEffectSettings
 import iad1tya.echo.music.ui.screens.settings.BackupAndRestore
 import iad1tya.echo.music.ui.screens.settings.ContentSettings
 import iad1tya.echo.music.ui.screens.settings.UptimeScreen
@@ -51,6 +47,7 @@ import iad1tya.echo.music.ui.screens.settings.PlayerSettings
 import iad1tya.echo.music.ui.screens.settings.PrivacySettings
 import iad1tya.echo.music.ui.screens.settings.RomanizationSettings
 import iad1tya.echo.music.ui.screens.settings.SettingsScreen
+import iad1tya.echo.music.ui.screens.settings.EchoExtractorSettings
 import iad1tya.echo.music.ui.screens.settings.AccountSettingsScreen
 import iad1tya.echo.music.ui.screens.settings.StorageSettings
 import iad1tya.echo.music.ui.screens.settings.ThemeScreen
@@ -77,6 +74,18 @@ fun NavGraphBuilder.navigationBuilder(
 ) {
     composable(Screens.Home.route) {
         HomeScreen(navController = navController, snackbarHostState = snackbarHostState)
+    }
+
+    composable("settings/echo_extractor") {
+        EchoExtractorSettings(navController, scrollBehavior)
+    }
+
+    composable("settings/echo_extractor") {
+        EchoExtractorSettings(navController, scrollBehavior)
+    }
+
+    composable("settings/echo_extractor") {
+        EchoExtractorSettings(navController, scrollBehavior)
     }
 
     composable(Screens.Search.route) {
@@ -329,17 +338,6 @@ fun NavGraphBuilder.navigationBuilder(
         SettingsScreen(navController, scrollBehavior)
     }
 
-    composable(
-        route = "settings/echo_brain?highlightKey={highlightKey}",
-        arguments = listOf(navArgument("highlightKey") { type = NavType.StringType; nullable = true })
-    ) { backStackEntry ->
-        iad1tya.echo.music.ui.screens.settings.EchoBrainScreen(
-            navController, 
-            (activity as iad1tya.echo.music.MainActivity).echoBrainEngine, 
-            (activity as iad1tya.echo.music.MainActivity).echoBrainRepository,
-            highlightKey = backStackEntry.arguments?.getString("highlightKey")
-        )
-    }
 
     composable(
         route = "settings/update?highlightKey={highlightKey}",
@@ -366,8 +364,8 @@ fun NavGraphBuilder.navigationBuilder(
         ThemeScreen(navController)
     }
 
-    composable("settings/appearance/liquid_glass") {
-        LiquidGlassSettings(navController, scrollBehavior)
+    composable("settings/appearance/liquidglass") {
+        GlassEffectSettings(navController, scrollBehavior)
     }
 
     composable(
@@ -390,6 +388,10 @@ fun NavGraphBuilder.navigationBuilder(
         arguments = listOf(navArgument("highlightKey") { type = NavType.StringType; nullable = true })
     ) { backStackEntry ->
         AiSettings(navController, scrollBehavior, highlightKey = backStackEntry.arguments?.getString("highlightKey"))
+    }
+    
+    composable("settings/lossless") {
+        iad1tya.echo.music.ui.screens.settings.LosslessContributeScreen(navController, scrollBehavior)
     }
     
     composable(
@@ -488,35 +490,5 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/commits") {
         CommitScreen(navController, scrollBehavior)
-    }
-
-    composable(
-        route = "story_share/{songId}/{title}/{artist}/{explicit}?thumbnailUrl={thumbnailUrl}&shareUrl={shareUrl}",
-        arguments = listOf(
-            navArgument("songId") { type = NavType.StringType },
-            navArgument("title") { type = NavType.StringType },
-            navArgument("artist") { type = NavType.StringType },
-            navArgument("explicit") { type = NavType.BoolType },
-            navArgument("thumbnailUrl") { type = NavType.StringType; nullable = true; defaultValue = "" },
-            navArgument("shareUrl") { type = NavType.StringType; nullable = true; defaultValue = "" }
-        )
-    ) { backStackEntry ->
-        val songId = backStackEntry.arguments?.getString("songId")!!
-        val title = backStackEntry.arguments?.getString("title")!!
-        val artist = backStackEntry.arguments?.getString("artist")!!
-        val explicit = backStackEntry.arguments?.getBoolean("explicit") ?: false
-        val thumbnailUrl = backStackEntry.arguments?.getString("thumbnailUrl") ?: ""
-        val shareUrl = backStackEntry.arguments?.getString("shareUrl") ?: ""
-
-        val viewModel: StoryShareViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-        val context = androidx.compose.ui.platform.LocalContext.current
-        
-        LaunchedEffect(songId) {
-            viewModel.load(context, songId, title, artist, thumbnailUrl, explicit, shareUrl)
-        }
-
-        StoryShareScreen(vm = viewModel) { dest ->
-            navController.popBackStack()
-        }
     }
 }

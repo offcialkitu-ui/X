@@ -37,6 +37,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import android.content.Intent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -57,11 +58,21 @@ class App : Application(), SingletonImageLoader.Factory {
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
+    override fun startForegroundService(service: Intent): android.content.ComponentName? {
+        return try {
+            super.startForegroundService(service)
+        } catch (e: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is android.app.ForegroundServiceStartNotAllowedException) {
+                Timber.e(e, "Suppressed ForegroundServiceStartNotAllowedException in App")
+                null
+            } else {
+                throw e
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
-
-        com.music.jiosaavn.DeviceRouter.init(this)
-        timber.log.Timber.d("Device ID: ${com.music.jiosaavn.DeviceRouter.getDeviceId()} | Assigned JioSaavn Server: ${com.music.jiosaavn.DeviceRouter.getCurrentServer()}")
 
         // Removed destructive database deletion to preserve user data
 
@@ -89,10 +100,6 @@ class App : Application(), SingletonImageLoader.Factory {
             }
             
             observeSettingsChanges()
-
-            // Initialize OTA Update components
-            iad1tya.echo.music.echomusic.updater.downloadmanager.DownloadNotificationManager.initialize(this@App)
-            iad1tya.echo.music.echomusic.updater.PeriodicUpdateWorker.setup(this@App)
         }
     }
 
@@ -101,6 +108,8 @@ class App : Application(), SingletonImageLoader.Factory {
         val locale = Locale.getDefault()
         val languageTag = locale.language
 
+        val currentAudioQuality = settings[AudioQualityKey]?.toEnum(defaultValue = AudioQuality.OPUS) ?: AudioQuality.OPUS
+        val currentDownloadQuality = settings[DownloadQualityKey]?.toEnum(defaultValue = DownloadQuality.YOUTUBE) ?: DownloadQuality.YOUTUBE
         YouTube.locale = YouTubeLocale(
             gl = settings[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }
                 ?: locale.country.takeIf { it in CountryCodeToName }
@@ -143,7 +152,7 @@ class App : Application(), SingletonImageLoader.Factory {
         }
 
         YouTube.useLoginForBrowse = settings[UseLoginForBrowse] ?: true
-        YouTube.ipVersion = settings[IpVersionKey]?.toEnum(defaultValue = IpVersion.AUTO) ?: IpVersion.AUTO
+        YouTube.ipVersion = settings[IpVersionKey]?.toEnum(defaultValue = IpVersion.IPV4) ?: IpVersion.IPV4
 
         val channel = NotificationChannel(
             "updates",
@@ -234,7 +243,7 @@ class App : Application(), SingletonImageLoader.Factory {
                 .map { it[IpVersionKey] }
                 .distinctUntilChanged()
                 .collect { ipVersion ->
-                    YouTube.ipVersion = ipVersion?.toEnum(defaultValue = IpVersion.AUTO) ?: IpVersion.AUTO
+                    YouTube.ipVersion = ipVersion?.toEnum(defaultValue = IpVersion.IPV4) ?: IpVersion.IPV4
                 }
         }
     }

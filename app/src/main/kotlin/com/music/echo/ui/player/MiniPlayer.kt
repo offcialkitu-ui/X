@@ -18,7 +18,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -122,8 +121,10 @@ import iad1tya.echo.music.models.MediaMetadata
 import iad1tya.echo.music.playback.CastConnectionHandler
 import iad1tya.echo.music.playback.PlayerConnection
 import iad1tya.echo.music.ui.screens.settings.DarkMode
-import androidx.compose.ui.graphics.luminance
-import iad1tya.echo.music.ui.theme.DefaultThemeColor
+import iad1tya.echo.music.ui.component.GlassComponent
+import iad1tya.echo.music.ui.component.LocalGlassEffectConfig
+import iad1tya.echo.music.ui.component.isGlassSupported
+import iad1tya.echo.music.ui.component.liquidGlass
 import iad1tya.echo.music.ui.theme.PlayerColorExtractor
 import iad1tya.echo.music.utils.rememberEnumPreference
 import iad1tya.echo.music.utils.rememberPreference
@@ -145,14 +146,7 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import iad1tya.echo.music.ui.theme.LocalPurpleTheme
 import iad1tya.echo.music.ui.component.Icon as MIcon
-import iad1tya.echo.music.ui.component.LiquidGlassBackground
-import iad1tya.echo.music.ui.component.getAdaptiveGlassTextColor
-import iad1tya.echo.music.ui.component.LocalGlassEffectConfig
-import iad1tya.echo.music.ui.component.GlassComponent
-import iad1tya.echo.music.ui.component.isGlassSupported
-import iad1tya.echo.music.ui.component.liquidGlass
 
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -239,20 +233,8 @@ private fun NewMiniPlayer(
     modifier: Modifier = Modifier
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-    val isPurple = LocalPurpleTheme.current
-    val partyMode by rememberPreference(iad1tya.echo.music.constants.PartyModeKey, defaultValue = false)
     
-    val infiniteTransition = rememberInfiniteTransition(label = "party_mini_player")
-    val partyRotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
+    
     val pureBlack by rememberPreference(PureBlackMiniPlayerKey, defaultValue = false)
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
@@ -289,7 +271,7 @@ private fun NewMiniPlayer(
     
     
     val listenTogetherManager = LocalListenTogetherManager.current
-    val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
+    val isListenTogetherGuest = listenTogetherManager?.let { it.isGuestPlaybackRestricted } ?: false
     val swipeThumbnail = swipeThumbnailPref && !isListenTogetherGuest
     
     val layoutDirection = LocalLayoutDirection.current
@@ -323,16 +305,20 @@ private fun NewMiniPlayer(
     
     
     val isDynamicBackground = miniPlayerBackground != PlayerBackgroundStyle.DEFAULT
-    val isLiquidGlass = miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS
     
-    val backgroundColor = if (isPurple) Color(0xFF0A0A0A) else if (pureBlack && useDarkTheme) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+    val glassConfig = LocalGlassEffectConfig.current
+    val backgroundColor = if (miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) {
+        Color.Transparent
+    } else if (pureBlack && useDarkTheme) {
+        Color.Black
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
     
-    val glassTextColor = getAdaptiveGlassTextColor(useDarkTheme, gradientColors.firstOrNull() ?: DefaultThemeColor)
-
-    val primaryColor = if (isPurple) Color(0xFF8B5CF6) else if (isLiquidGlass) glassTextColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.primary
-    val onPrimaryColor = if (isPurple) Color.White else if (isLiquidGlass) (if (glassTextColor.luminance() > 0.5f) Color.Black else Color.White) else if (isDynamicBackground) Color.Black else MaterialTheme.colorScheme.onPrimary
-    val outlineColor = if (isPurple) Color(0xFF8B5CF6).copy(alpha = 0.4f) else if (isDynamicBackground) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
-    val onSurfaceColor = if (isPurple) Color.White else if (isLiquidGlass) glassTextColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.onSurface
+    val primaryColor = if (miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) glassConfig.textColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.primary
+    val onPrimaryColor = if (isDynamicBackground) Color.Black else MaterialTheme.colorScheme.onPrimary
+    val outlineColor = if (miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) glassConfig.textColor.copy(alpha = 0.5f) else if (isDynamicBackground) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
+    val onSurfaceColor = if (miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) glassConfig.textColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.onSurface
     val errorColor = MaterialTheme.colorScheme.error
 
     Box(
@@ -409,27 +395,7 @@ private fun NewMiniPlayer(
                 .height(MiniPlayerHeight)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp))
-                .background(
-                    if (isPurple) Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF151515),
-                            Color(0xFF0A0A0A)
-                        )
-                    ) else Brush.verticalGradient(listOf(backgroundColor, backgroundColor))
-                )
-                .then(
-                    if (partyMode) {
-                        Modifier.drawWithContent {
-                            val partyColors = listOf(Color(0xFFFFD700), Color(0xFFFFA500), Color(0xFFFFD700))
-                            drawContent()
-                            drawRoundRect(
-                                brush = Brush.sweepGradient(partyColors, center = center),
-                                style = Stroke(width = 1.5.dp.toPx()),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(32.dp.toPx())
-                            )
-                        }
-                    } else Modifier
-                )
+                .background(color = backgroundColor)
                 .border(1.dp, outlineColor.copy(alpha = 0.3f), RoundedCornerShape(32.dp))
         ) {
             
@@ -438,24 +404,6 @@ private fun NewMiniPlayer(
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors
             )
-
-            if (partyMode) {
-                val extractedAuraColor = gradientColors.firstOrNull() ?: Color(0xFFFFA500)
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(8.dp)
-                        .alpha(0.5f)
-                ) {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(extractedAuraColor, Color.Transparent),
-                            center = center,
-                            radius = size.width
-                        )
-                    )
-                }
-            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -667,7 +615,7 @@ private fun LegacyMiniPlayer(
     
     
     val listenTogetherManager = LocalListenTogetherManager.current
-    val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
+    val isListenTogetherGuest = listenTogetherManager?.let { it.isGuestPlaybackRestricted } ?: false
     val swipeThumbnail = swipeThumbnailPref && !isListenTogetherGuest
 
     val layoutDirection = LocalLayoutDirection.current
@@ -841,7 +789,7 @@ private fun LegacyPlayPauseButton(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val castIsPlaying by castHandler?.castIsPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
     val effectiveIsPlaying = if (isCasting) castIsPlaying else isPlaying
-    val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
+    val isListenTogetherGuest = listenTogetherManager?.let { it.isGuestPlaybackRestricted } ?: false
     val isMuted by playerConnection.isMuted.collectAsState()
 
 
@@ -1077,7 +1025,7 @@ private fun MiniPlayerBackgroundLayer(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(15.dp)
+                        .blur(30.dp)
                 )
                 Box(
                     modifier = Modifier
@@ -1158,23 +1106,6 @@ private fun MiniPlayerBackgroundLayer(
                 )
             }
         }
-        PlayerBackgroundStyle.LIQUID_GLASS -> {
-            val glassConfig = LocalGlassEffectConfig.current
-            if (glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .liquidGlass(config = glassConfig)
-                )
-            } else if (gradientColors.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Brush.verticalGradient(gradientColors))
-                        .background(Color.Black.copy(alpha = 0.2f))
-                )
-            }
-        }
         PlayerBackgroundStyle.LIVE_MESH -> {
             val infiniteTransition = rememberInfiniteTransition(label = "liveMesh")
             val rotation = infiniteTransition.animateFloat(
@@ -1207,10 +1138,27 @@ private fun MiniPlayerBackgroundLayer(
                     colorFilter = ColorFilter.colorMatrix(matrix),
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(15.dp)
+                        .blur(40.dp)
                         .graphicsLayer { rotationZ = rotation.value }
                 )
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
+            }
+        }
+        PlayerBackgroundStyle.LIQUID_GLASS -> {
+            val glassConfig = LocalGlassEffectConfig.current
+            if (glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .liquidGlass(config = glassConfig)
+                )
+            } else if (gradientColors.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(gradientColors))
+                        .background(Color.Black.copy(alpha = 0.2f))
+                )
             }
         }
         else -> {}
@@ -1230,8 +1178,7 @@ private fun MiniPlayerControls(
     primaryColor: Color,
     onPrimaryColor: Color
 ) {
-    val isPurple = LocalPurpleTheme.current
-    val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
+    val isListenTogetherGuest = listenTogetherManager?.let { it.isGuestPlaybackRestricted } ?: false
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val castIsPlaying by castHandler?.castIsPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
     val effectiveIsPlaying = if (isCasting) castIsPlaying else isPlaying
@@ -1293,14 +1240,7 @@ private fun MiniPlayerControls(
                         clip = true
                         shape = PolygonCookieShape(sides = 9, indent = cookieIndent)
                     }
-                    .background(
-                        if (isPurple) Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF8B5CF6),
-                                Color(0xFF6D28D9)
-                            )
-                        ) else Brush.linearGradient(listOf(primaryColor, primaryColor))
-                    )
+                    .background(primaryColor)
             )
 
             Icon(

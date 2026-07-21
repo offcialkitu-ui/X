@@ -154,7 +154,7 @@ object AppleMusicCanvasProvider {
                 query = "$query $album"
             }
             val url = "$AMP_BASE_URL/v1/catalog/$storefront/search"
-            val token = iad1tya.echo.music.canvas.AppleMusicTokenProvider.getToken()
+            val token = iad1tya.echo.music.applecanvas.AppleMusicTokenProvider.getToken()
             val response = client.get(url) {
                 header("Authorization", "Bearer $token")
                 header("Origin", "https://music.apple.com")
@@ -339,7 +339,7 @@ object AppleMusicCanvasProvider {
         return runCatching {
             AppleCanvasLogger.d("fetching album $albumId")
             val url = "$AMP_BASE_URL/v1/catalog/$storefront/albums/$albumId"
-            val token = iad1tya.echo.music.canvas.AppleMusicTokenProvider.getToken()
+            val token = iad1tya.echo.music.applecanvas.AppleMusicTokenProvider.getToken()
             val response = client.get(url) {
                 header("Authorization", "Bearer $token")
                 header("Origin", "https://music.apple.com")

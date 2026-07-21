@@ -20,9 +20,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-import androidx.compose.ui.graphics.Brush
-import iad1tya.echo.music.ui.theme.LocalPurpleTheme
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerSliderTrack(
@@ -31,7 +28,6 @@ fun PlayerSliderTrack(
     colors: SliderColors = SliderDefaults.colors(),
     trackHeight: Dp = 10.dp
 ) {
-    val isPurple = LocalPurpleTheme.current
     val inactiveTrackColor = colors.inactiveTrackColor
     val activeTrackColor = colors.activeTrackColor
     val inactiveTickColor = colors.inactiveTickColor
@@ -54,8 +50,7 @@ fun PlayerSliderTrack(
             activeTrackColor,
             inactiveTickColor,
             activeTickColor,
-            trackHeight,
-            isPurple
+            trackHeight
         )
     }
 }
@@ -68,8 +63,7 @@ private fun DrawScope.drawTrack(
     activeTrackColor: Color,
     inactiveTickColor: Color,
     activeTickColor: Color,
-    trackHeight: Dp = 2.dp,
-    isPurple: Boolean = false
+    trackHeight: Dp = 2.dp
 ) {
     val isRtl = layoutDirection == LayoutDirection.Rtl
     val sliderLeft = Offset(0f, center.y)
@@ -78,30 +72,13 @@ private fun DrawScope.drawTrack(
     val sliderEnd = if (isRtl) sliderLeft else sliderRight
     val tickSize = 2.0.dp.toPx()
     val trackStrokeWidth = trackHeight.toPx()
-    
-    if (isPurple) {
-        drawLine(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color(0xFF8B5CF6).copy(alpha = 0.15f),
-                    Color(0xFF8B5CF6).copy(alpha = 0.25f)
-                )
-            ),
-            sliderStart,
-            sliderEnd,
-            trackStrokeWidth,
-            StrokeCap.Round
-        )
-    } else {
-        drawLine(
-            inactiveTrackColor,
-            sliderStart,
-            sliderEnd,
-            trackStrokeWidth,
-            StrokeCap.Round
-        )
-    }
-
+    drawLine(
+        inactiveTrackColor,
+        sliderStart,
+        sliderEnd,
+        trackStrokeWidth,
+        StrokeCap.Round
+    )
     val sliderValueEnd = Offset(
         sliderStart.x +
                 (sliderEnd.x - sliderStart.x) * activeRangeEnd,
@@ -112,30 +89,13 @@ private fun DrawScope.drawTrack(
                 (sliderEnd.x - sliderStart.x) * activeRangeStart,
         center.y
     )
-    
-    if (isPurple) {
-        drawLine(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color(0xFF8B5CF6),
-                    Color(0xFFD8B4FE)
-                )
-            ),
-            sliderValueStart,
-            sliderValueEnd,
-            trackStrokeWidth,
-            StrokeCap.Round
-        )
-    } else {
-        drawLine(
-            activeTrackColor,
-            sliderValueStart,
-            sliderValueEnd,
-            trackStrokeWidth,
-            StrokeCap.Round
-        )
-    }
-
+    drawLine(
+        activeTrackColor,
+        sliderValueStart,
+        sliderValueEnd,
+        trackStrokeWidth,
+        StrokeCap.Round
+    )
     for (tick in tickFractions) {
         val outsideFraction = tick > activeRangeEnd || tick < activeRangeStart
         drawCircle(

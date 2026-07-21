@@ -21,8 +21,6 @@ import android.provider.MediaStore
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
@@ -348,142 +346,6 @@ object ComposeToImage {
     
     
     
-    suspend fun createSongShareImage(
-        context: Context,
-        coverArtUrl: String?,
-        songTitle: String,
-        artistName: String,
-        backgroundColor: Int? = null,
-        textColor: Int? = null
-    ): Bitmap = withContext(Dispatchers.Default) {
-        val imageWidth = 1080
-        val imageHeight = 1920 // Portrait 9:16 for stories
-        
-        val bitmap = createBitmap(imageWidth, imageHeight)
-        val canvas = Canvas(bitmap)
-
-        val bgColor = backgroundColor ?: 0xFF121212.toInt()
-        val mainTextColor = textColor ?: 0xFFFFFFFF.toInt()
-        val secondaryTxtColor = (mainTextColor and 0x00FFFFFF) or 0xB3000000.toInt().inv().and(0xFF000000.toInt()).inv().and(0xB3000000.toInt()) // ~70% alpha
-        
-        // Correct way to get ~70% alpha white if main is white
-        val secondaryTxtColorFixed = if (mainTextColor == 0xFFFFFFFF.toInt()) 0xB3FFFFFF.toInt() else mainTextColor
-
-        // Draw background
-        canvas.drawColor(bgColor)
-
-        // Load cover art
-        var coverArtBitmap: Bitmap? = null
-        if (coverArtUrl != null) {
-            try {
-                val imageLoader = ImageLoader(context)
-                val request = ImageRequest.Builder(context)
-                    .data(coverArtUrl)
-                    .size(1080)
-                    .allowHardware(false)
-                    .build()
-                val result = imageLoader.execute(request)
-                coverArtBitmap = result.image?.toBitmap()
-            } catch (_: Exception) {}
-        }
-
-        // Draw Blurred Background if cover art exists
-        if (coverArtBitmap != null) {
-            val scaledBitmap = Bitmap.createScaledBitmap(coverArtBitmap, 108, 192, true)
-            val blurredBitmap = fastBlur(scaledBitmap, 1f, 20)
-            if (blurredBitmap != null) {
-                canvas.drawBitmap(blurredBitmap, null, RectF(0f, 0f, imageWidth.toFloat(), imageHeight.toFloat()), null)
-                // Dark overlay
-                canvas.drawColor(0x66000000.toInt(), PorterDuff.Mode.SRC_OVER)
-            }
-        }
-
-        val padding = 80f
-        val cardWidth = imageWidth - (padding * 2)
-        val cardHeight = cardWidth + 240f // Square art + space for text
-        val cardTop = (imageHeight - cardHeight) / 2f
-        val cardRect = RectF(padding, cardTop, imageWidth - padding, cardTop + cardHeight)
-
-        // Draw Card Shadow/Glow
-        val shadowPaint = Paint().apply {
-            color = 0x44000000.toInt()
-            isAntiAlias = true
-        }
-        canvas.drawRoundRect(RectF(padding + 10, cardTop + 10, imageWidth - padding + 10, cardTop + cardHeight + 10), 40f, 40f, shadowPaint)
-
-        // Draw Card Background
-        val cardPaint = Paint().apply {
-            color = 0xFF1E1E1E.toInt()
-            isAntiAlias = true
-        }
-        canvas.drawRoundRect(cardRect, 40f, 40f, cardPaint)
-
-        // Draw Cover Art in Card
-        coverArtBitmap?.let {
-            val artPadding = 40f
-            val artSize = cardWidth - (artPadding * 2)
-            val artRect = RectF(padding + artPadding, cardTop + artPadding, imageWidth - padding - artPadding, cardTop + artPadding + artSize)
-            val path = Path().apply {
-                addRoundRect(artRect, 24f, 24f, Path.Direction.CW)
-            }
-            canvas.save()
-            canvas.clipPath(path)
-            canvas.drawBitmap(it, null, artRect, Paint(Paint.FILTER_BITMAP_FLAG))
-            canvas.restore()
-        }
-
-        // Draw Text
-        val textPadding = 60f
-        val textTop = cardTop + (cardWidth - 20f) + 40f
-        
-        val titlePaint = TextPaint().apply {
-            color = Color.White.toArgb()
-            textSize = 64f
-            typeface = Typeface.DEFAULT_BOLD
-            isAntiAlias = true
-        }
-        
-        val artistPaint = TextPaint().apply {
-            color = 0xB3FFFFFF.toInt()
-            textSize = 48f
-            typeface = Typeface.DEFAULT
-            isAntiAlias = true
-        }
-
-        val titleLayout = StaticLayout.Builder.obtain(songTitle, 0, songTitle.length, titlePaint, (cardWidth - textPadding * 2).toInt())
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setMaxLines(1)
-            .setEllipsize(android.text.TextUtils.TruncateAt.END)
-            .build()
-            
-        val artistLayout = StaticLayout.Builder.obtain(artistName, 0, artistName.length, artistPaint, (cardWidth - textPadding * 2).toInt())
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setMaxLines(1)
-            .setEllipsize(android.text.TextUtils.TruncateAt.END)
-            .build()
-
-        canvas.save()
-        canvas.translate(padding + textPadding, textTop)
-        titleLayout.draw(canvas)
-        canvas.translate(0f, titleLayout.height.toFloat() + 10f)
-        artistLayout.draw(canvas)
-        canvas.restore()
-
-        // Brand Footer
-        val brandPaint = TextPaint().apply {
-            color = 0x80FFFFFF.toInt()
-            textSize = 36f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            isAntiAlias = true
-            letterSpacing = 0.1f
-        }
-        val brandText = context.getString(R.string.app_name).uppercase()
-        val brandWidth = brandPaint.measureText(brandText)
-        canvas.drawText(brandText, (imageWidth - brandWidth) / 2f, imageHeight - 100f, brandPaint)
-
-        return@withContext bitmap
-    }
-
     private fun fastBlur(sentBitmap: Bitmap, scale: Float, radius: Int): Bitmap? {
         val width = (sentBitmap.width * scale).roundToInt()
         val height = (sentBitmap.height * scale).roundToInt()
@@ -690,31 +552,33 @@ object ComposeToImage {
     }
 
     fun saveBitmapAsFile(context: Context, bitmap: Bitmap, fileName: String): Uri {
-        val shareDir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "share")
-        shareDir.mkdirs()
-        val imageFile = File(shareDir, "$fileName.png")
-        FileOutputStream(imageFile).use { outputStream ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-        }
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.FileProvider",
-            imageFile
-        )
-    }
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.png")
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/echomusic")
+            }
+            val uri = context.contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            ) ?: throw IllegalStateException("Failed to create new MediaStore record")
 
-    suspend fun getBitmapFromUrl(context: Context, url: String, size: Int = 1024): Bitmap? = withContext(Dispatchers.IO) {
-        try {
-            val loader = ImageLoader(context)
-            val request = ImageRequest.Builder(context)
-                .data(url)
-                .size(size)
-                .allowHardware(false)
-                .build()
-            val result = loader.execute(request)
-            result.image?.toBitmap()
-        } catch (e: Exception) {
-            null
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+            uri
+        } else {
+            val cachePath = File(context.cacheDir, "images")
+            cachePath.mkdirs()
+            val imageFile = File(cachePath, "$fileName.png")
+            FileOutputStream(imageFile).use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.FileProvider",
+                imageFile
+            )
         }
     }
 }

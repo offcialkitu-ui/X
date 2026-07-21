@@ -1,22 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  MelodyX Turntable Widget – 2×2 premium vinyl disc.
-  Android 12+: uses previewLayout for the widget picker,
-  description, widgetCategory, and proper resizeMode.
-  targetCellWidth/Height hint at a 2×2 grid slot.
--->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="110dp"
-    android:minResizeWidth="80dp"
-    android:minResizeHeight="80dp"
-    android:maxResizeWidth="220dp"
-    android:maxResizeHeight="220dp"
-    android:updatePeriodMillis="0"
+    android:updatePeriodMillis="1800000"
     android:previewLayout="@layout/widget_turntable"
     android:initialLayout="@layout/widget_turntable"
     android:description="@string/turntable_widget_description"
     android:widgetCategory="home_screen"
-    android:resizeMode="horizontal|vertical"
-    android:targetCellWidth="2"
-    android:targetCellHeight="2" />
+    android:resizeMode="none" />

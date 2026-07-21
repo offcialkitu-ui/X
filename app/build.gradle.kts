@@ -33,8 +33,8 @@ android {
         applicationId = "iad1tya.echo.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 651
-        versionName = "6.5.1"
+        versionCode = 700
+        versionName = "7.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -45,6 +45,12 @@ android {
 
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastFmSecret\"")
+
+        // GitHub OAuth keys
+        val githubClientId = localProperties.getProperty("GH_CLIENT_ID") ?: System.getenv("GH_CLIENT_ID") ?: ""
+        val githubClientSecret = localProperties.getProperty("GH_CLIENT_SECRET") ?: System.getenv("GH_CLIENT_SECRET") ?: ""
+        buildConfigField("String", "GH_CLIENT_ID", "\"$githubClientId\"")
+        buildConfigField("String", "GH_CLIENT_SECRET", "\"$githubClientSecret\"")
 
         buildConfigField("String", "FLOW_NEURO_BASE_URL", project.findProperty("FLOW_NEURO_BASE_URL")?.toString()?.let { "\"$it\"" } ?: "\"https://api.flowneuroengine.com\"")
         buildConfigField("String", "FLOW_NEURO_API_KEY", project.findProperty("FLOW_NEURO_API_KEY")?.toString()?.let { "\"$it\"" } ?: "\"\"")
@@ -62,7 +68,7 @@ android {
         buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
         manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
     }
-    
+
 
     flavorDimensions += listOf("abi", "variant")
     productFlavors {
@@ -78,7 +84,7 @@ android {
             dimension = "variant"
             buildConfigField("Boolean", "CAST_AVAILABLE", "true")
         }
-        
+
         create("universal") {
             dimension = "abi"
             buildConfigField("String", "ARCHITECTURE", "\"universal\"")
@@ -118,12 +124,6 @@ android {
             keyAlias = System.getenv("KEY_ALIAS")
             keyPassword = System.getenv("KEY_PASSWORD")
         }
-        getByName("debug") {
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-            storePassword = "android"
-            storeFile = rootProject.file("debug.keystore")
-        }
     }
 
     buildTypes {
@@ -142,7 +142,6 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("debug")
             buildConfigField("String", "ARCHITECTURE", "\"debug\"")
         }
     }
@@ -246,7 +245,7 @@ dependencies {
         exclude(group = "org.apache.httpcomponents")
     }
 
-    
+
     implementation(libs.haze)
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
@@ -320,7 +319,6 @@ dependencies {
     implementation(project(":applecanvas"))
     implementation(project(":echomusiccanvas"))
     implementation(project(":paxsenixlyrics"))
-    implementation(project(":jiosaavn"))
     implementation(project(":unison"))
 
 
@@ -343,7 +341,5 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.ffmpeg.kit.audio)
-
-    testImplementation(libs.junit)
 
 }

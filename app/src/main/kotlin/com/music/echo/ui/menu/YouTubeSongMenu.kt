@@ -40,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -254,15 +253,13 @@ fun YouTubeSongMenu(
         },  
     )  
 
-    HorizontalDivider()
-
     Spacer(modifier = Modifier.height(12.dp))
 
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
+    val isGuest = listenTogetherManager?.isGuestPlaybackRestricted == true
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -325,26 +322,6 @@ fun YouTubeSongMenu(
                             context.startActivity(Intent.createChooser(intent, null))
                             onDismiss()
                         }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_instagram_new),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = Color(0xFFE4405F)
-                            )
-                        },
-                        text = "Premium Share",
-                        onClick = {
-                            onDismiss()
-                            val encodedTitle = java.net.URLEncoder.encode(song.title, "UTF-8")
-                            val encodedArtist = java.net.URLEncoder.encode(artists.joinToString(", ") { it.name }, "UTF-8")
-                            val encodedThumb = java.net.URLEncoder.encode(song.thumbnail ?: "", "UTF-8")
-                            val encodedShare = java.net.URLEncoder.encode(song.shareLink ?: "", "UTF-8")
-                            
-                            navController.navigate("story_share/${song.id}/$encodedTitle/$encodedArtist/${song.explicit}?thumbnailUrl=$encodedThumb&shareUrl=$encodedShare")
-                        }
                     )
                 ),
                 columns = 3,
@@ -355,7 +332,7 @@ fun YouTubeSongMenu(
         item {
             Material3MenuGroup(
                 items = listOfNotNull(
-                    if (listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
+                    if (listenTogetherManager != null && listenTogetherManager.isGuestPlaybackRestricted) {
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.suggest_to_host)) },
                             icon = {

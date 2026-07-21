@@ -57,7 +57,7 @@ object AppleMusicAboutAlbum {
             }
 
             val searchUrl = "$AMP_BASE_URL/v1/catalog/$storefront/search"
-            val token = iad1tya.echo.music.canvas.AppleMusicTokenProvider.getToken()
+            val token = iad1tya.echo.music.utils.AppleMusicTokenProvider.getToken()
             val searchResponse = client.get(searchUrl) {
                 header("Authorization", "Bearer $token")
                 header("Origin", "https://music.apple.com")

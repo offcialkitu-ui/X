@@ -10,7 +10,6 @@ import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -153,9 +152,8 @@ inline fun ListItem(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = Modifier
             .padding(vertical = 2.dp)
-            .height(ListItemHeight)
             .padding(horizontal = horizontalPadding)
             .clip(shape)
             .background(
@@ -165,6 +163,8 @@ inline fun ListItem(
                     else -> color
                 }
             )
+            .then(modifier)
+            .height(ListItemHeight)
     ) {
         Box(
             modifier = Modifier.padding(start = 12.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
@@ -390,25 +390,10 @@ fun SongListItem(
     showSize: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {
         val isLossless = song.format?.codecs == "flac"
-        val is320 = song.format?.codecs?.contains("mp4a.40.2") == true && song.format.bitrate >= 320000
 
         if (isLossless) {
             Text(
                 text = "LOSSLESS",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    fontSize = 8.sp
-                ),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(end = 4.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
-                    .padding(horizontal = 2.dp)
-            )
-        } else if (is320) {
-            Text(
-                text = "320KBPS",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -448,7 +433,7 @@ fun SongListItem(
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
     horizontalPadding: Dp = 16.dp,
 ) {
-    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = true)
 
     val content: @Composable () -> Unit = {
         ListItem(
@@ -869,23 +854,16 @@ fun PlaylistListItem(
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
+                    
                     stringResource(R.string.uploaded_playlist) -> R.drawable.backup
                     else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.ic_launcher_nobg
                 }
-                if (painter == R.drawable.ic_launcher_nobg) {
-                    Image(
-                        painter = painterResource(painter),
-                        contentDescription = null,
-                        modifier = Modifier.size(ListThumbnailSize / 2).clip(CircleShape)
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(painter),
-                        contentDescription = null,
-                        tint = LocalContentColor.current.copy(alpha = 0.8f),
-                        modifier = Modifier.size(ListThumbnailSize / 2)
-                    )
-                }
+                Icon(
+                    painter = painterResource(painter),
+                    contentDescription = null,
+                    tint = LocalContentColor.current.copy(alpha = 0.8f),
+                    modifier = Modifier.size(ListThumbnailSize / 2)
+                )
             },
             shape = RoundedCornerShape(ThumbnailCornerRadius)
         )
@@ -1041,9 +1019,6 @@ fun MediaMetadataListItem(
             )
         },
         badges = {
-            if (mediaMetadata.source == iad1tya.echo.music.models.QueueItemSource.ECHO_BRAIN) {
-                Icon.EchoBrain()
-            }
             if (mediaMetadata.explicit) Icon.Explicit()
         },
         thumbnailContent = {
@@ -1102,7 +1077,7 @@ fun YouTubeListItem(
     shape: Shape = RectangleShape,
     drawHighlight: Boolean = true,
 ) {
-    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = true)
 
     val content: @Composable () -> Unit = {
         ListItem(
@@ -1846,26 +1821,13 @@ object Icon {
         )
     }
 
-    @Composable
-    fun EchoBrain() {
-        Icon(
-            imageVector = Icons.Outlined.AutoAwesome,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .size(18.dp)
-                .padding(end = 2.dp)
-        )
-    }
 }
 
 @Composable
-fun rememberQobuzMatch(
+fun rememberLosslessMatch(
     id: String,
     artist: String,
     title: String,
-    durationMs: Long?,
-    audioQuality: iad1tya.echo.music.constants.AudioQuality,
     cachedFlac: Boolean
 ): androidx.compose.runtime.State<Boolean?> {
     return androidx.compose.runtime.produceState<Boolean?>(initialValue = if (cachedFlac) true else null, id) {
@@ -1874,20 +1836,8 @@ fun rememberQobuzMatch(
             return@produceState
         }
         kotlinx.coroutines.delay(300) // Debounce fast scrolling
-        val qobuzClient = iad1tya.echo.music.utils.qobuz.QobuzApiClient()
-        var found = false
-        for (term in iad1tya.echo.music.utils.qobuzSearchTerms(artist, title)) {
-            val searchResult = runCatching { qobuzClient.search(term) }.getOrNull() ?: continue
-            val candidates = searchResult.tracks?.items.orEmpty()
-            if (candidates.isEmpty()) continue
-            val scored = candidates.map { it to iad1tya.echo.music.utils.confidence(artist, title, durationMs, it) }
-            val match = scored.filter { it.second >= 0.5f }.maxByOrNull { it.second }
-            if (match != null) {
-                found = true
-                break
-            }
-        }
-        value = found
+        val track = iad1tya.echo.music.utils.LosslessAPI.search(title, artist)
+        value = track != null
     }
 }
 

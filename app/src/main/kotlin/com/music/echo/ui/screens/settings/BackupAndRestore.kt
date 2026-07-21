@@ -179,18 +179,17 @@ fun BackupAndRestore(
                                         }.backup"
                                     )
                                 }
-                            )
-                        )
-                    )
-                    Spacer(modifier = Modifier.padding(8.dp))
-
-                    Material3SettingsGroup(
-                        items = listOf(
+                            ),
                             Material3SettingsItem(
                                 title = { Text("Import") },
                                 description = { Text("Restore data from backups or other sources") },
                                 icon = painterResource(R.drawable.restore),
                                 onClick = { currentScreen = BackupSubScreen.IMPORT }
+                            ),
+                            Material3SettingsItem(
+                                title = { Text("Import from Spotify") },
+                                icon = painterResource(R.drawable.ic_spotify),
+                                onClick = { navController.navigate("settings/spotify_import") }
                             )
                         )
                     )
@@ -199,11 +198,6 @@ fun BackupAndRestore(
                     Material3SettingsGroup(
                         title = "Import Data",
                         items = listOf(
-                            Material3SettingsItem(
-                                title = { Text("Import from Spotify") },
-                                icon = painterResource(R.drawable.ic_spotify),
-                                onClick = { navController.navigate("settings/spotify_import") }
-                            ),
                             Material3SettingsItem(
                                 title = { Text("Import from local file") },
                                 icon = painterResource(R.drawable.restore),

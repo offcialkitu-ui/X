@@ -12,11 +12,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import iad1tya.echo.music.ui.utils.fadingEdge
 
 @Composable
@@ -27,16 +24,12 @@ fun OnlineBlur(
     Box(modifier = modifier) {
         if (thumbnailUrl != null) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(thumbnailUrl)
-                    .size(128, 128)
-                    .allowHardware(false)
-                    .build(),
+                model = thumbnailUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(20.dp)
+                    .blur(50.dp)
                     .fadingEdge(bottom = 200.dp)
             )
         }

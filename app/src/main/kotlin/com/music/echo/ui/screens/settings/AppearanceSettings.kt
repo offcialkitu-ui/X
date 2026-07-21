@@ -27,9 +27,26 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,59 +58,76 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import iad1tya.echo.music.LocalPlayerAwareWindowInsets
 import iad1tya.echo.music.R
-import iad1tya.echo.music.constants.*
-import iad1tya.echo.music.ui.component.*
+import iad1tya.echo.music.constants.CanvasThumbnailAnimationKey
+import iad1tya.echo.music.constants.ChipSortTypeKey
+import iad1tya.echo.music.constants.CropAlbumArtKey
+import iad1tya.echo.music.constants.DefaultOpenTabKey
+import iad1tya.echo.music.constants.DensityScale
+import iad1tya.echo.music.constants.DensityScaleKey
+import iad1tya.echo.music.constants.DynamicThemeKey
+import iad1tya.echo.music.constants.EnableDynamicIconKey
+import iad1tya.echo.music.constants.EnableHighRefreshRateKey
+import iad1tya.echo.music.constants.EnableHapticsKey
+import iad1tya.echo.music.constants.EnableLyricsThumbnailPlayPauseKey
+import iad1tya.echo.music.constants.GridItemSize
+import iad1tya.echo.music.constants.GridItemsSizeKey
+import iad1tya.echo.music.constants.HidePlayerThumbnailKey
+import iad1tya.echo.music.constants.LibraryFilter
+import iad1tya.echo.music.constants.ListenTogetherInTopBarKey
+import iad1tya.echo.music.constants.LyricsAnimationStyle
+import iad1tya.echo.music.constants.LyricsAnimationStyleKey
+import iad1tya.echo.music.constants.LyricsStandardBlurKey
+import iad1tya.echo.music.constants.LyricsTextPositionKey
+import iad1tya.echo.music.constants.LyricsTextSizeKey
+import iad1tya.echo.music.constants.PlayerBackgroundStyle
+import iad1tya.echo.music.constants.PlayerBackgroundStyleKey
+import iad1tya.echo.music.constants.PlayerButtonsStyle
+import iad1tya.echo.music.constants.PlayerButtonsStyleKey
+
+import iad1tya.echo.music.constants.RotatingThumbnailKey
+import iad1tya.echo.music.constants.SelectedThemeColorKey
+import iad1tya.echo.music.constants.ShowCachedPlaylistKey
+import iad1tya.echo.music.constants.ShowExportedPlaylistKey
+import iad1tya.echo.music.constants.ShowDownloadedPlaylistKey
+import iad1tya.echo.music.constants.ShowLikedPlaylistKey
+import iad1tya.echo.music.constants.ShowTopPlaylistKey
+import iad1tya.echo.music.constants.ShowUploadedPlaylistKey
+import iad1tya.echo.music.constants.SliderStyle
+import iad1tya.echo.music.constants.SliderStyleKey
+import iad1tya.echo.music.constants.SquigglySliderKey
+import iad1tya.echo.music.constants.SwipeSensitivityKey
+import iad1tya.echo.music.constants.SwipeThumbnailKey
+import iad1tya.echo.music.constants.SwipeLyricsKey
+import iad1tya.echo.music.constants.SwipeToRemoveSongKey
+import iad1tya.echo.music.constants.SwipeToSongKey
+import iad1tya.echo.music.constants.ThumbnailCornerRadiusKey
+
+import iad1tya.echo.music.constants.UseNewPlayerDesignKey
+import iad1tya.echo.music.ui.component.ThumbnailCornerRadiusModal
+import iad1tya.echo.music.ui.component.DefaultDialog
+import iad1tya.echo.music.ui.component.EnumDialog
+import iad1tya.echo.music.ui.component.IconButton
+import iad1tya.echo.music.ui.component.Material3SettingsGroup
+import iad1tya.echo.music.ui.component.Material3SettingsItem
+import iad1tya.echo.music.ui.component.PlayerSliderTrack
+import iad1tya.echo.music.ui.component.SquigglySlider
+import iad1tya.echo.music.ui.component.WavySlider
 import iad1tya.echo.music.ui.theme.DefaultThemeColor
 import iad1tya.echo.music.ui.theme.PlayerSliderColors
 import iad1tya.echo.music.ui.utils.backToMain
-import iad1tya.echo.music.utils.*
+import iad1tya.echo.music.utils.IconUtils
+import iad1tya.echo.music.utils.rememberEnumPreference
+import iad1tya.echo.music.utils.rememberPreference
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import androidx.compose.animation.core.*
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-
-@Composable
-private fun PartyModeTitle() {
-    val infiniteTransition = rememberInfiniteTransition(label = "party_glow")
-    val colors = listOf(
-        Color(0xFF8B5CF6), // Electric Purple
-        Color(0xFF3B82F6), // Neon Blue
-        Color(0xFF06B6D4), // Cyan
-        Color(0xFFD946EF), // Magenta
-        Color(0xFF8B5CF6)
-    )
-    
-    val offset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "offset"
-    )
-
-    val brush = Brush.linearGradient(
-        colors = colors,
-        start = Offset(offset, offset),
-        end = Offset(offset + 400f, offset + 400f),
-        tileMode = TileMode.Mirror
-    )
-
-    Text(
-        text = "PARTY MODE",
-        style = MaterialTheme.typography.titleMedium.copy(
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.5.sp,
-            brush = brush
-        )
-    )
-}
+import iad1tya.echo.music.constants.LyricsClickKey
+import iad1tya.echo.music.constants.AppleMusicLyricsBlurKey
+import iad1tya.echo.music.constants.LyricsGlowEffectKey
+import iad1tya.echo.music.constants.LyricsLineSpacingKey
+import iad1tya.echo.music.constants.LyricsScrollKey
+import iad1tya.echo.music.constants.HideStatusBarOnFullscreenKey
+import iad1tya.echo.music.constants.MiniPlayerBackgroundStyleKey
+import iad1tya.echo.music.constants.ShowCommentButtonKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,105 +136,258 @@ fun AppearanceSettings(
     scrollBehavior: TopAppBarScrollBehavior,
     activity: Activity,
     snackbarHostState: SnackbarHostState,
-    highlightKey: String? = null
-) {
-    val scrollState = rememberScrollState()
-    val context = activity as Context
+highlightKey: String? = null) {
+    val scrollState = androidx.compose.foundation.rememberScrollState()
+
+    val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
+        DynamicThemeKey,
+        defaultValue = true
+    )
+    val (enableLegacyIcon, onEnableLegacyIconChange) = rememberPreference(
+        iad1tya.echo.music.constants.EnableLegacyIconKey,
+        defaultValue = false
+    )
+    val (enableHighRefreshRate, onEnableHighRefreshRateChange) = rememberPreference(
+        iad1tya.echo.music.constants.EnableHighRefreshRateKey,
+        defaultValue = true
+    )
+    val (enableHaptics, onEnableHapticsChange) = rememberPreference(
+        iad1tya.echo.music.constants.EnableHapticsKey,
+        defaultValue = false
+    )
+    val (selectedThemeColorInt) = rememberPreference(
+        SelectedThemeColorKey,
+        defaultValue = DefaultThemeColor.toArgb()
+    )
+    
+    val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
     val coroutineScope = rememberCoroutineScope()
 
-    val (dynamicTheme, onDynamicThemeChange) = rememberPreference(DynamicThemeKey, true)
-    val (enableHighRefreshRate, onEnableHighRefreshRateChange) = rememberPreference(EnableHighRefreshRateKey, true)
-    val (selectedThemeColorInt) = rememberPreference(SelectedThemeColorKey, DefaultThemeColor.toArgb())
-    val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
+    fun handleIconChange(legacyEnabled: Boolean) {
+        onEnableLegacyIconChange(legacyEnabled)
+        IconUtils.setIcon(activity, false, legacyEnabled)
+        coroutineScope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = "Icon updated, restart to apply",
+                actionLabel = "Restart"
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                val packageManager = activity.packageManager
+                val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
+                val componentName = intent?.component
+                val mainIntent = Intent.makeRestartActivityTask(componentName)
+                activity.startActivity(mainIntent)
+                Runtime.getRuntime().exit(0)
+            }
+        }
+    }
 
-    val (purpleTheme, onPurpleThemeChange) = rememberPreference(PurpleThemeKey, false)
-    val (partyMode, onPartyModeChange) = rememberPreference(PartyModeKey, false)
-    val (glassmorphismMode, onGlassmorphismModeChange) = rememberPreference(GlassmorphismModeKey, false)
-    val (solarDynamicMode, onSolarDynamicModeChange) = rememberPreference(SolarDynamicModeKey, false)
-    val (batteryProMode, onBatteryProModeChange) = rememberPreference(BatteryProModeKey, false)
-    val (lockScreenOverlay, onLockScreenOverlayChange) = rememberPreference(LockScreenOverlayKey, true)
-    val (dynamicCapsule, onDynamicCapsuleChange) = rememberPreference(DynamicCapsuleKey, true)
 
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(UseNewPlayerDesignKey, true)
-    val (showCodecOnPlayer, onShowCodecOnPlayerChange) = rememberPreference(ShowCodecOnPlayerKey, false)
-    val (hidePlayerSlider, onHidePlayerSliderChange) = rememberPreference(HidePlayerSliderKey, false)
-    val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
-    val (cropAlbumArt, onCropAlbumArtChange) = rememberPreference(CropAlbumArtKey, false)
-    val (playerBackground, onPlayerBackgroundChange) = rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.GRADIENT)
-    val (miniPlayerBackground, onMiniPlayerBackgroundChange) = rememberEnumPreference(MiniPlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
+    val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(
+        UseNewPlayerDesignKey,
+        defaultValue = true
+    )
+    val (showCodecOnPlayer, onShowCodecOnPlayerChange) = rememberPreference(
+        iad1tya.echo.music.constants.ShowCodecOnPlayerKey,
+        defaultValue = false
+    )
+    val (hidePlayerSlider, onHidePlayerSliderChange) = rememberPreference(
+        iad1tya.echo.music.constants.HidePlayerSliderKey,
+        defaultValue = false
+    )
+    val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
+        HidePlayerThumbnailKey,
+        defaultValue = false
+    )
+    val (cropAlbumArt, onCropAlbumArtChange) = rememberPreference(
+        CropAlbumArtKey,
+        defaultValue = false
+    )
+    val (playerBackground, onPlayerBackgroundChange) =
+        rememberEnumPreference(
+            PlayerBackgroundStyleKey,
+            defaultValue = PlayerBackgroundStyle.GRADIENT,
+        )
+    val (miniPlayerBackground, onMiniPlayerBackgroundChange) =
+        rememberEnumPreference(
+            MiniPlayerBackgroundStyleKey,
+            defaultValue = PlayerBackgroundStyle.DEFAULT,
+        )
 
-    val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(DefaultOpenTabKey, NavigationTab.HOME)
-    val (playerButtonsStyle, onPlayerButtonsStyleChange) = rememberEnumPreference(PlayerButtonsStyleKey, PlayerButtonsStyle.DEFAULT)
-    val (lyricsPosition, onLyricsPositionChange) = rememberEnumPreference(LyricsTextPositionKey, LyricsPosition.LEFT)
-    val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, true)
-    val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, true)
-    val (lyricsAnimationStyle, onLyricsAnimationStyleChange) = rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.echomusic_1)
-    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, 24f)
-    val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, 1.3f)
-    val (lyricsGlowEffect, onLyricsGlowEffectChange) = rememberPreference(LyricsGlowEffectKey, false)
-    val (appleMusicLyricsBlur, onAppleMusicLyricsBlurChange) = rememberPreference(AppleMusicLyricsBlurKey, true)
-    val (lyricsStandardBlur, onLyricsStandardBlurChange) = rememberPreference(LyricsStandardBlurKey, false)
-    val (swipeLyrics, onSwipeLyricsChange) = rememberPreference(SwipeLyricsKey, false)
-    val (enableLyricsThumbnailPlayPause, onEnableLyricsThumbnailPlayPauseChange) = rememberPreference(EnableLyricsThumbnailPlayPauseKey, false)
-    val (hideStatusBarOnFullscreen, onHideStatusBarOnFullscreenChange) = rememberPreference(HideStatusBarOnFullscreenKey, false)
+    val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
+        DefaultOpenTabKey,
+        defaultValue = NavigationTab.HOME
+    )
+    val (playerButtonsStyle, onPlayerButtonsStyleChange) = rememberEnumPreference(
+        PlayerButtonsStyleKey,
+        defaultValue = PlayerButtonsStyle.DEFAULT
+    )
+    val (lyricsPosition, onLyricsPositionChange) = rememberEnumPreference(
+        LyricsTextPositionKey,
+        defaultValue = LyricsPosition.LEFT
+    )
+    val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
+    val (lyricsScroll, onLyricsScrollChange) = rememberPreference(
+        LyricsScrollKey,
+        defaultValue = true
+    )
+    val (lyricsAnimationStyle, onLyricsAnimationStyleChange) = rememberEnumPreference(
+        LyricsAnimationStyleKey,
+        defaultValue = LyricsAnimationStyle.echomusic_1
+    )
+    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 24f)
+    val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsGlowEffect, onLyricsGlowEffectChange) = rememberPreference(LyricsGlowEffectKey, defaultValue = false)
+    val (appleMusicLyricsBlur, onAppleMusicLyricsBlurChange) = rememberPreference(AppleMusicLyricsBlurKey, defaultValue = true)
+    val (lyricsStandardBlur, onLyricsStandardBlurChange) = rememberPreference(LyricsStandardBlurKey, defaultValue = false)
+    val (swipeLyrics, onSwipeLyricsChange) = rememberPreference(SwipeLyricsKey, defaultValue = false)
+    val (enableLyricsThumbnailPlayPause, onEnableLyricsThumbnailPlayPauseChange) = rememberPreference(EnableLyricsThumbnailPlayPauseKey, defaultValue = false)
+    val (hideStatusBarOnFullscreen, onHideStatusBarOnFullscreenChange) = rememberPreference(HideStatusBarOnFullscreenKey, defaultValue = false)
 
-    val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(SliderStyleKey, SliderStyle.DEFAULT)
-    val (squigglySlider, onSquigglySliderChange) = rememberPreference(SquigglySliderKey, false)
-    val (swipeThumbnail, onSwipeThumbnailChange) = rememberPreference(SwipeThumbnailKey, true)
-    val (swipeSensitivity, onSwipeSensitivityChange) = rememberPreference(SwipeSensitivityKey, 0.73f)
-    val (canvasThumbnailAnimation, onCanvasThumbnailAnimationChange) = rememberPreference(CanvasThumbnailAnimationKey, false)
-    val (rotatingThumbnail, onRotatingThumbnailChange) = rememberPreference(RotatingThumbnailKey, false)
-    val (gridItemSize, onGridItemSizeChange) = rememberEnumPreference(GridItemsSizeKey, GridItemSize.SMALL)
+    val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
+        SliderStyleKey,
+        defaultValue = SliderStyle.DEFAULT
+    )
+    val (squigglySlider, onSquigglySliderChange) = rememberPreference(
+        SquigglySliderKey,
+        defaultValue = false
+    )
+    val (swipeThumbnail, onSwipeThumbnailChange) = rememberPreference(
+        SwipeThumbnailKey,
+        defaultValue = true
+    )
+    val (swipeSensitivity, onSwipeSensitivityChange) = rememberPreference(
+        SwipeSensitivityKey,
+        defaultValue = 0.73f
+    )
+    val (canvasThumbnailAnimation, onCanvasThumbnailAnimationChange) = rememberPreference(
+        CanvasThumbnailAnimationKey,
+        defaultValue = false
+    )
+    val (rotatingThumbnail, onRotatingThumbnailChange) = rememberPreference(
+        RotatingThumbnailKey,
+        defaultValue = false
+    )
+    val (gridItemSize, onGridItemSizeChange) = rememberEnumPreference(
+        GridItemsSizeKey,
+        defaultValue = GridItemSize.SMALL
+    )
 
+    
+    val context = activity as Context
     val sharedPreferences = remember { context.getSharedPreferences("echomusic_settings", Context.MODE_PRIVATE) }
-    val prefDensityScale = remember(sharedPreferences) { sharedPreferences.getFloat("density_scale_factor", 1.0f) }
-    val (densityScale, setDensityScale) = rememberPreference(DensityScaleKey, prefDensityScale)
+    val prefDensityScale = remember(sharedPreferences) {
+        sharedPreferences.getFloat("density_scale_factor", 1.0f)
+    }
+    val (densityScale, setDensityScale) = rememberPreference(DensityScaleKey, defaultValue = prefDensityScale)
     var showRestartDialog by rememberSaveable { mutableStateOf(false) }
     var showDensityScaleDialog by rememberSaveable { mutableStateOf(false) }
 
     val onDensityScaleChange: (Float) -> Unit = { newScale ->
         setDensityScale(newScale)
-        sharedPreferences.edit { putFloat("density_scale_factor", newScale) }
+        
+        sharedPreferences.edit {
+            putFloat("density_scale_factor", newScale)
+        }
         showRestartDialog = true
     }
 
-    val (listenTogetherInTopBar, onListenTogetherInTopBarChange) = rememberPreference(ListenTogetherInTopBarKey, true)
-    val (swipeToSong, onSwipeToSongChange) = rememberPreference(SwipeToSongKey, false)
-    val (swipeToRemoveSong, onSwipeToRemoveSongChange) = rememberPreference(SwipeToRemoveSongKey, false)
+    val (listenTogetherInTopBar, onListenTogetherInTopBarChange) = rememberPreference(
+        ListenTogetherInTopBarKey,
+        defaultValue = true
+    )
 
-    val (showLikedPlaylist, onShowLikedPlaylistChange) = rememberPreference(ShowLikedPlaylistKey, true)
-    val (showDownloadedPlaylist, onShowDownloadedPlaylistChange) = rememberPreference(ShowDownloadedPlaylistKey, true)
-    val (showExportedPlaylist, onShowExportedPlaylistChange) = rememberPreference(ShowExportedPlaylistKey, true)
-    val (showTopPlaylist, onShowTopPlaylistChange) = rememberPreference(ShowTopPlaylistKey, true)
-    val (showCachedPlaylist, onShowCachedPlaylistChange) = rememberPreference(ShowCachedPlaylistKey, true)
-    val (showCommentButton, onShowCommentButtonChange) = rememberPreference(ShowCommentButtonKey, false)
+    val (swipeToSong, onSwipeToSongChange) = rememberPreference(
+        SwipeToSongKey,
+        defaultValue = true
+    )
+
+    val (swipeToRemoveSong, onSwipeToRemoveSongChange) = rememberPreference(
+        SwipeToRemoveSongKey,
+        defaultValue = false
+    )
+
+    val (showLikedPlaylist, onShowLikedPlaylistChange) = rememberPreference(
+        ShowLikedPlaylistKey,
+        defaultValue = true
+    )
+    val (showDownloadedPlaylist, onShowDownloadedPlaylistChange) = rememberPreference(
+        ShowDownloadedPlaylistKey,
+        defaultValue = true
+    )
+    val (showExportedPlaylist, onShowExportedPlaylistChange) = rememberPreference(
+        ShowExportedPlaylistKey,
+        defaultValue = true
+    )
+    val (showTopPlaylist, onShowTopPlaylistChange) = rememberPreference(
+        ShowTopPlaylistKey,
+        defaultValue = true
+    )
+    val (showCachedPlaylist, onShowCachedPlaylistChange) = rememberPreference(
+        ShowCachedPlaylistKey,
+        defaultValue = true
+    )
+    val (showCommentButton, onShowCommentButtonChange) = rememberPreference(
+        ShowCommentButtonKey,
+        defaultValue = false
+    )
 
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
+
     val availableMiniPlayerBackgroundStyles = availableBackgroundStyles.filter { 
         it != PlayerBackgroundStyle.APPLE_MUSIC && it != PlayerBackgroundStyle.GRADIENT
     }
-    val (defaultChip, onDefaultChipChange) = rememberEnumPreference(key = ChipSortTypeKey, defaultValue = LibraryFilter.LIBRARY)
 
-    var showSliderOptionDialog by rememberSaveable { mutableStateOf(false) }
-    var showPlayerBackgroundDialog by rememberSaveable { mutableStateOf(false) }
-    var showMiniPlayerBackgroundDialog by rememberSaveable { mutableStateOf(false) }
-    var showPlayerButtonsStyleDialog by rememberSaveable { mutableStateOf(false) }
-    var showLyricsPositionDialog by rememberSaveable { mutableStateOf(false) }
-    var showLyricsAnimationStyleDialog by rememberSaveable { mutableStateOf(false) }
-    var showLyricsTextSizeDialog by rememberSaveable { mutableStateOf(false) }
-    var showLyricsLineSpacingDialog by rememberSaveable { mutableStateOf(false) }
-    var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
-    var showThumbnailCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
-    var showDefaultOpenTabDialog by rememberSaveable { mutableStateOf(false) }
-    var showDefaultChipDialog by rememberSaveable { mutableStateOf(false) }
-    var showGridSizeDialog by rememberSaveable { mutableStateOf(false) }
+
+
+    val (defaultChip, onDefaultChipChange) = rememberEnumPreference(
+        key = ChipSortTypeKey,
+        defaultValue = LibraryFilter.LIBRARY
+    )
+
+    var showSliderOptionDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+
+
+    var showPlayerBackgroundDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showMiniPlayerBackgroundDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showPlayerButtonsStyleDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showLyricsPositionDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showLyricsAnimationStyleDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showLyricsTextSizeDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var showLyricsLineSpacingDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
 
     if (showLyricsPositionDialog) {
         EnumDialog(
             onDismiss = { showLyricsPositionDialog = false },
-            onSelect = { onLyricsPositionChange(it); showLyricsPositionDialog = false },
+            onSelect = {
+                onLyricsPositionChange(it)
+                showLyricsPositionDialog = false
+            },
             title = stringResource(R.string.lyrics_text_position),
             current = lyricsPosition,
             values = LyricsPosition.values().toList(),
@@ -217,7 +404,10 @@ fun AppearanceSettings(
     if (showLyricsAnimationStyleDialog) {
         EnumDialog(
             onDismiss = { showLyricsAnimationStyleDialog = false },
-            onSelect = { onLyricsAnimationStyleChange(it); showLyricsAnimationStyleDialog = false },
+            onSelect = {
+                onLyricsAnimationStyleChange(it)
+                showLyricsAnimationStyleDialog = false
+            },
             title = stringResource(R.string.lyrics_animation_style),
             current = lyricsAnimationStyle,
             values = LyricsAnimationStyle.values().toList(),
@@ -240,38 +430,128 @@ fun AppearanceSettings(
 
     if (showLyricsTextSizeDialog) {
         var tempTextSize by remember { mutableFloatStateOf(lyricsTextSize) }
+        
         DefaultDialog(
-            onDismiss = { showLyricsTextSizeDialog = false },
+            onDismiss = { 
+                tempTextSize = lyricsTextSize
+                showLyricsTextSizeDialog = false 
+            },
             buttons = {
-                TextButton(onClick = { tempTextSize = 24f }) { Text(stringResource(R.string.reset)) }
+                TextButton(
+                    onClick = { 
+                        tempTextSize = 24f
+                    }
+                ) {
+                    Text(stringResource(R.string.reset))
+                }
+                
                 Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = { showLyricsTextSizeDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                TextButton(onClick = { onLyricsTextSizeChange(tempTextSize); showLyricsTextSizeDialog = false }) { Text(stringResource(android.R.string.ok)) }
+                
+                TextButton(
+                    onClick = { 
+                        tempTextSize = lyricsTextSize
+                        showLyricsTextSizeDialog = false 
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = { 
+                        onLyricsTextSizeChange(tempTextSize)
+                        showLyricsTextSizeDialog = false 
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
             }
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                Text(text = stringResource(R.string.lyrics_text_size), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 16.dp))
-                Text(text = "${tempTextSize.roundToInt()} sp", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
-                Slider(value = tempTextSize, onValueChange = { tempTextSize = it }, valueRange = 16f..36f, steps = 19, modifier = Modifier.fillMaxWidth())
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.lyrics_text_size),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = "${tempTextSize.roundToInt()} sp",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Slider(
+                    value = tempTextSize,
+                    onValueChange = { tempTextSize = it },
+                    valueRange = 16f..36f,
+                    steps = 19,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 
     if (showLyricsLineSpacingDialog) {
         var tempLineSpacing by remember { mutableFloatStateOf(lyricsLineSpacing) }
+        
         DefaultDialog(
-            onDismiss = { showLyricsLineSpacingDialog = false },
+            onDismiss = { 
+                tempLineSpacing = lyricsLineSpacing
+                showLyricsLineSpacingDialog = false 
+            },
             buttons = {
-                TextButton(onClick = { tempLineSpacing = 1.3f }) { Text(stringResource(R.string.reset)) }
+                TextButton(
+                    onClick = { 
+                        tempLineSpacing = 1.3f
+                    }
+                ) {
+                    Text(stringResource(R.string.reset))
+                }
+                
                 Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = { showLyricsLineSpacingDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                TextButton(onClick = { onLyricsLineSpacingChange(tempLineSpacing); showLyricsLineSpacingDialog = false }) { Text(stringResource(android.R.string.ok)) }
+                
+                TextButton(
+                    onClick = { 
+                        tempLineSpacing = lyricsLineSpacing
+                        showLyricsLineSpacingDialog = false 
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = { 
+                        onLyricsLineSpacingChange(tempLineSpacing)
+                        showLyricsLineSpacingDialog = false 
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
             }
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                Text(text = stringResource(R.string.lyrics_line_spacing), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 16.dp))
-                Text(text = "%.1f x".format(tempLineSpacing), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
-                Slider(value = tempLineSpacing, onValueChange = { tempLineSpacing = it }, valueRange = 1.0f..4.0f, steps = 59, modifier = Modifier.fillMaxWidth())
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.lyrics_line_spacing),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = "${String.format("%.1f", tempLineSpacing)}x",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Slider(
+                    value = tempLineSpacing,
+                    onValueChange = { tempLineSpacing = it },
+                    valueRange = 1.0f..4.0f,
+                    steps = 59,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -279,7 +559,10 @@ fun AppearanceSettings(
     if (showPlayerButtonsStyleDialog) {
         EnumDialog(
             onDismiss = { showPlayerButtonsStyleDialog = false },
-            onSelect = { onPlayerButtonsStyleChange(it); showPlayerButtonsStyleDialog = false },
+            onSelect = {
+                onPlayerButtonsStyleChange(it)
+                showPlayerButtonsStyleDialog = false
+            },
             title = stringResource(R.string.player_buttons_style),
             current = playerButtonsStyle,
             values = PlayerButtonsStyle.values().toList(),
@@ -296,7 +579,10 @@ fun AppearanceSettings(
     if (showPlayerBackgroundDialog) {
         EnumDialog(
             onDismiss = { showPlayerBackgroundDialog = false },
-            onSelect = { onPlayerBackgroundChange(it); showPlayerBackgroundDialog = false },
+            onSelect = {
+                onPlayerBackgroundChange(it)
+                showPlayerBackgroundDialog = false
+            },
             title = stringResource(R.string.player_background_style),
             current = playerBackground,
             values = availableBackgroundStyles,
@@ -308,7 +594,7 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                     PlayerBackgroundStyle.APPLE_MUSIC -> stringResource(R.string.apple_music)
                     PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
-                    PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                    PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_liquid_glass)
                 }
             }
         )
@@ -317,7 +603,10 @@ fun AppearanceSettings(
     if (showMiniPlayerBackgroundDialog) {
         EnumDialog(
             onDismiss = { showMiniPlayerBackgroundDialog = false },
-            onSelect = { onMiniPlayerBackgroundChange(it); showMiniPlayerBackgroundDialog = false },
+            onSelect = {
+                onMiniPlayerBackgroundChange(it)
+                showMiniPlayerBackgroundDialog = false
+            },
             title = stringResource(R.string.miniplayer_background_style),
             current = miniPlayerBackground,
             values = availableMiniPlayerBackgroundStyles,
@@ -328,17 +617,25 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                     PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
-                    PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
-                    else -> "Unknown"
+                    PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_liquid_glass)
+                    else -> stringResource(R.string.unknown)
                 }
             }
         )
     }
 
+
+    var showDefaultOpenTabDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     if (showDefaultOpenTabDialog) {
         EnumDialog(
             onDismiss = { showDefaultOpenTabDialog = false },
-            onSelect = { onDefaultOpenTabChange(it); showDefaultOpenTabDialog = false },
+            onSelect = {
+                onDefaultOpenTabChange(it)
+                showDefaultOpenTabDialog = false
+            },
             title = stringResource(R.string.default_open_tab),
             current = defaultOpenTab,
             values = NavigationTab.values().toList(),
@@ -352,10 +649,17 @@ fun AppearanceSettings(
         )
     }
 
+    var showDefaultChipDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     if (showDefaultChipDialog) {
         EnumDialog(
             onDismiss = { showDefaultChipDialog = false },
-            onSelect = { onDefaultChipChange(it); showDefaultChipDialog = false },
+            onSelect = {
+                onDefaultChipChange(it)
+                showDefaultChipDialog = false
+            },
             title = stringResource(R.string.default_lib_chips),
             current = defaultChip,
             values = LibraryFilter.values().toList(),
@@ -372,10 +676,17 @@ fun AppearanceSettings(
         )
     }
 
+    var showGridSizeDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     if (showGridSizeDialog) {
         EnumDialog(
             onDismiss = { showGridSizeDialog = false },
-            onSelect = { onGridItemSizeChange(it); showGridSizeDialog = false },
+            onSelect = {
+                onGridItemSizeChange(it)
+                showGridSizeDialog = false
+            },
             title = stringResource(R.string.grid_cell_size),
             current = gridItemSize,
             values = GridItemSize.values().toList(),
@@ -392,20 +703,36 @@ fun AppearanceSettings(
         DefaultDialog(
             onDismiss = { showRestartDialog = false },
             buttons = {
-                TextButton(onClick = { showRestartDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                TextButton(onClick = {
-                    showRestartDialog = false
-                    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                TextButton(
+                    onClick = { showRestartDialog = false }
+                ) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        showRestartDialog = false
+                        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        }
+                        context.startActivity(intent)
+                        Runtime.getRuntime().exit(0)
                     }
-                    context.startActivity(intent)
-                    Runtime.getRuntime().exit(0)
-                }) { Text(stringResource(R.string.restart)) }
+                ) {
+                    Text(text = stringResource(R.string.restart))
+                }
             }
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(text = stringResource(R.string.restart_required), style = MaterialTheme.typography.titleLarge)
-                Text(text = stringResource(R.string.density_restart_message), style = MaterialTheme.typography.bodyMedium)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.restart_required),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = stringResource(R.string.density_restart_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
@@ -413,15 +740,35 @@ fun AppearanceSettings(
     if (showDensityScaleDialog) {
         DefaultDialog(
             onDismiss = { showDensityScaleDialog = false },
-            buttons = { TextButton(onClick = { showDensityScaleDialog = false }) { Text(stringResource(android.R.string.cancel)) } }
+            buttons = {
+                TextButton(
+                    onClick = { showDensityScaleDialog = false }
+                ) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+            }
         ) {
             Column {
                 DensityScale.entries.forEach { scale ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().clickable { onDensityScaleChange(scale.value); showDensityScaleDialog = false }.padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onDensityScaleChange(scale.value)
+                                showDensityScaleDialog = false
+                            }
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = scale.label, style = MaterialTheme.typography.bodyLarge, color = if (densityScale == scale.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = scale.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (densityScale == scale.value) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
                     }
                 }
             }
@@ -430,268 +777,262 @@ fun AppearanceSettings(
 
     if (showSliderOptionDialog) {
         DefaultDialog(
-            buttons = { TextButton(onClick = { showSliderOptionDialog = false }) { Text(stringResource(android.R.string.cancel)) } },
-            onDismiss = { showSliderOptionDialog = false }
-        ) {
-            val sliderPreviewColors = PlayerSliderColors.getSliderColors(MaterialTheme.colorScheme.primary, PlayerBackgroundStyle.DEFAULT, isSystemInDarkTheme())
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.aspectRatio(1f).weight(1f).clip(RoundedCornerShape(16.dp)).border(1.dp, if (sliderStyle == SliderStyle.DEFAULT && !squigglySlider) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)).clickable { onSliderStyleChange(SliderStyle.DEFAULT); onSquigglySliderChange(false); showSliderOptionDialog = false }.padding(12.dp)) {
-                        Slider(value = 0.35f, onValueChange = { }, colors = sliderPreviewColors, enabled = false, modifier = Modifier.weight(1f))
-                        Text(text = stringResource(R.string.default_), style = MaterialTheme.typography.labelSmall)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.aspectRatio(1f).weight(1f).clip(RoundedCornerShape(16.dp)).border(1.dp, if (sliderStyle == SliderStyle.WAVY && !squigglySlider) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)).clickable { onSliderStyleChange(SliderStyle.WAVY); onSquigglySliderChange(false); showSliderOptionDialog = false }.padding(12.dp)) {
-                        WavySlider(value = 0.5f, onValueChange = { }, colors = sliderPreviewColors, modifier = Modifier.weight(1f), isPlaying = true, enabled = false)
-                        Text(text = stringResource(R.string.wavy), style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.aspectRatio(1f).weight(1f).clip(RoundedCornerShape(16.dp)).border(1.dp, if (sliderStyle == SliderStyle.SLIM) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)).clickable { onSliderStyleChange(SliderStyle.SLIM); onSquigglySliderChange(false); showSliderOptionDialog = false }.padding(12.dp)) {
-                        Slider(value = 0.65f, onValueChange = { }, thumb = { Spacer(modifier = Modifier.size(0.dp)) }, track = { sliderState -> PlayerSliderTrack(sliderState = sliderState, colors = sliderPreviewColors) }, colors = sliderPreviewColors, enabled = false, modifier = Modifier.weight(1f))
-                        Text(text = stringResource(R.string.slim), style = MaterialTheme.typography.labelSmall)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.aspectRatio(1f).weight(1f).clip(RoundedCornerShape(16.dp)).border(1.dp, if (sliderStyle == SliderStyle.WAVY && squigglySlider) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)).clickable { onSliderStyleChange(SliderStyle.WAVY); onSquigglySliderChange(true); showSliderOptionDialog = false }.padding(12.dp)) {
-                        SquigglySlider(value = 0.5f, onValueChange = { }, modifier = Modifier.weight(1f), enabled = false, colors = sliderPreviewColors, isPlaying = true)
-                        Text(text = stringResource(R.string.squiggly), style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-        }
-    }
-
-    if (showSensitivityDialog) {
-        var tempSensitivity by remember { mutableFloatStateOf(swipeSensitivity) }
-        DefaultDialog(
-            onDismiss = { showSensitivityDialog = false },
             buttons = {
-                TextButton(onClick = { tempSensitivity = 0.73f }) { Text(stringResource(R.string.reset)) }
-                Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = { showSensitivityDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                TextButton(onClick = { onSwipeSensitivityChange(tempSensitivity); showSensitivityDialog = false }) { Text(stringResource(android.R.string.ok)) }
+                TextButton(
+                    onClick = { showSliderOptionDialog = false }
+                ) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+            },
+            onDismiss = {
+                showSliderOptionDialog = false
             }
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                Text(text = stringResource(R.string.swipe_sensitivity), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 16.dp))
-                Text(text = stringResource(R.string.sensitivity_percentage, (tempSensitivity * 100).roundToInt()), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
-                Slider(value = tempSensitivity, onValueChange = { tempSensitivity = it }, valueRange = 0f..1f, modifier = Modifier.fillMaxWidth())
+            val sliderPreviewColors = PlayerSliderColors.getSliderColors(
+                MaterialTheme.colorScheme.primary,
+                PlayerBackgroundStyle.DEFAULT,
+                isSystemInDarkTheme()
+            )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                if (sliderStyle == SliderStyle.DEFAULT && !squigglySlider) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                onSliderStyleChange(SliderStyle.DEFAULT)
+                                onSquigglySliderChange(false)
+                                showSliderOptionDialog = false
+                            }
+                            .padding(12.dp)
+                    ) {
+                        val sliderValue = 0.35f
+                        Slider(
+                            value = sliderValue,
+                            valueRange = 0f..1f,
+                                    
+                            onValueChange = {  },
+                            colors = sliderPreviewColors,
+                            enabled = false,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(R.string.default_),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                if (sliderStyle == SliderStyle.WAVY && !squigglySlider) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                onSliderStyleChange(SliderStyle.WAVY)
+                                onSquigglySliderChange(false)
+                                showSliderOptionDialog = false
+                            }
+                            .padding(12.dp)
+                    ) {
+                        val sliderValue = 0.5f
+                        WavySlider(
+                            value = sliderValue,
+                            valueRange = 0f..1f,
+                                    
+                            onValueChange = {  },
+                            colors = sliderPreviewColors,
+                            modifier = Modifier.weight(1f),
+                            isPlaying = true,
+                            enabled = false
+                        )
+                        Text(
+                            text = stringResource(R.string.wavy),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                if (sliderStyle == SliderStyle.SLIM) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                onSliderStyleChange(SliderStyle.SLIM)
+                                onSquigglySliderChange(false)
+                                showSliderOptionDialog = false
+                            }
+                            .padding(12.dp)
+                    ) {
+                        val sliderValue = 0.65f
+                        Slider(
+                            value = sliderValue,
+                            valueRange = 0f..1f,
+                                    
+                            onValueChange = {  },
+                            thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+                            track = { sliderState ->
+                                PlayerSliderTrack(
+                                    sliderState = sliderState,
+                                    colors = sliderPreviewColors
+                                )
+                            },
+                            colors = sliderPreviewColors,
+                            enabled = false,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Text(
+                            text = stringResource(R.string.slim),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                if (sliderStyle == SliderStyle.WAVY && squigglySlider) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                onSliderStyleChange(SliderStyle.WAVY)
+                                onSquigglySliderChange(true)
+                                showSliderOptionDialog = false
+                            }
+                            .padding(12.dp)
+                    ) {
+                        val sliderValue = 0.5f
+                        SquigglySlider(
+                            value = sliderValue,
+                            valueRange = 0f..1f,
+                                    
+                            onValueChange = {  },
+                            modifier = Modifier.weight(1f),
+                            enabled = false,
+                            colors = sliderPreviewColors,
+                            isPlaying = true,
+                        )
+                        Text(
+                            text = stringResource(R.string.squiggly),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
         }
-    }
-
-    if (showThumbnailCornerRadiusDialog) {
-        val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(ThumbnailCornerRadiusKey, 3f)
-        ThumbnailCornerRadiusModal(initialRadius = thumbnailCornerRadius, onDismiss = { showThumbnailCornerRadiusDialog = false }, onRadiusSelected = { onThumbnailCornerRadiusChange(it); showThumbnailCornerRadiusDialog = false })
     }
 
     Column(
         Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal))
+            .windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Horizontal
+                )
+            )
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp),
     ) {
-        Spacer(Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)))
-        
+        Spacer(
+            Modifier.windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Top
+                )
+            )
+        )
         Material3SettingsGroup(scrollState = scrollState, 
             title = stringResource(R.string.theme),
             items = buildList {
-                add(
-                    Material3SettingsItem(
-                        isHighlighted = (highlightKey == "Party Mode"),
-                        icon = painterResource(R.drawable.palette),
-                        title = { PartyModeTitle() },
-                        description = { Text(stringResource(R.string.enable_dark_mode_party_mode)) },
-                        trailingContent = {
-                            Switch(
-                                checked = partyMode,
-                                onCheckedChange = { 
-                                    onPartyModeChange(it)
-                                    if (it) {
-                                        onGlassmorphismModeChange(false)
-                                        onSolarDynamicModeChange(false)
-                                        onBatteryProModeChange(false)
-                                        onPurpleThemeChange(false)
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityParty")
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.party_mode_enabled_snack))
-                                        }
-                                    } else {
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                                    }
-                                }
-                            )
-                        },
-                        onClick = { 
-                            val newVal = !partyMode
-                            onPartyModeChange(newVal)
-                            if (newVal) {
-                                onGlassmorphismModeChange(false)
-                                onSolarDynamicModeChange(false)
-                                onBatteryProModeChange(false)
-                                onPurpleThemeChange(false)
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityParty")
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(context.getString(R.string.party_mode_enabled_snack))
-                                }
-                            } else {
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                            }
-                        }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        isHighlighted = (highlightKey == "Glassmorphism"),
-                        icon = painterResource(R.drawable.palette),
-                        title = { Text(stringResource(R.string.glassmorphism_edition)) },
-                        description = { Text(stringResource(R.string.glassmorphism_edition_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = glassmorphismMode,
-                                onCheckedChange = { 
-                                    onGlassmorphismModeChange(it)
-                                    if (it) {
-                                        onPartyModeChange(false)
-                                        onSolarDynamicModeChange(false)
-                                        onBatteryProModeChange(false)
-                                        onPurpleThemeChange(false)
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                                    }
-                                }
-                            )
-                        },
-                        onClick = { 
-                            val newVal = !glassmorphismMode
-                            onGlassmorphismModeChange(newVal)
-                            if (newVal) {
-                                onPartyModeChange(false)
-                                onSolarDynamicModeChange(false)
-                                onBatteryProModeChange(false)
-                                onPurpleThemeChange(false)
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                            }
-                        }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        isHighlighted = (highlightKey == "Solar Dynamic"),
-                        icon = painterResource(R.drawable.palette),
-                        title = { Text(stringResource(R.string.solar_dynamic_mode)) },
-                        description = { Text(stringResource(R.string.solar_dynamic_mode_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = solarDynamicMode,
-                                onCheckedChange = { 
-                                    onSolarDynamicModeChange(it)
-                                    if (it) {
-                                        onPartyModeChange(false)
-                                        onGlassmorphismModeChange(false)
-                                        onBatteryProModeChange(false)
-                                        onPurpleThemeChange(false)
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                                    }
-                                }
-                            )
-                        },
-                        onClick = { 
-                            val newVal = !solarDynamicMode
-                            onSolarDynamicModeChange(newVal)
-                            if (newVal) {
-                                onPartyModeChange(false)
-                                onGlassmorphismModeChange(false)
-                                onBatteryProModeChange(false)
-                                onPurpleThemeChange(false)
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                            }
-                        }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        isHighlighted = (highlightKey == "Battery Pro"),
-                        icon = painterResource(R.drawable.speed),
-                        title = { Text(stringResource(R.string.battery_pro_mode)) },
-                        description = { Text(stringResource(R.string.battery_pro_mode_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = batteryProMode,
-                                onCheckedChange = { 
-                                    onBatteryProModeChange(it)
-                                    if (it) {
-                                        onPartyModeChange(false)
-                                        onGlassmorphismModeChange(false)
-                                        onSolarDynamicModeChange(false)
-                                        onPurpleThemeChange(false)
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                                    }
-                                }
-                            )
-                        },
-                        onClick = { 
-                            val newVal = !batteryProMode
-                            onBatteryProModeChange(newVal)
-                            if (newVal) {
-                                onPartyModeChange(false)
-                                onGlassmorphismModeChange(false)
-                                onSolarDynamicModeChange(false)
-                                onPurpleThemeChange(false)
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                            }
-                        }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        isHighlighted = (highlightKey == "Purple Theme"),
-                        icon = painterResource(R.drawable.palette),
-                        title = { Text(stringResource(R.string.purple_theme)) },
-                        description = { Text(stringResource(R.string.purple_theme_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = purpleTheme,
-                                onCheckedChange = {
-                                    onPurpleThemeChange(it)
-                                    if (it) {
-                                        onPartyModeChange(false)
-                                        onGlassmorphismModeChange(false)
-                                        onSolarDynamicModeChange(false)
-                                        onBatteryProModeChange(false)
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityPurple")
-                                    } else {
-                                        iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                                    }
-                                }
-                            )
-                        },
-                        onClick = { 
-                            val newVal = !purpleTheme
-                            onPurpleThemeChange(newVal)
-                            if (newVal) {
-                                onPartyModeChange(false)
-                                onGlassmorphismModeChange(false)
-                                onSolarDynamicModeChange(false)
-                                onBatteryProModeChange(false)
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityPurple")
-                            } else {
-                                iad1tya.echo.music.utils.IconManager.setIcon(context, "MainActivityAlias")
-                            }
-                        }
-                    )
-                )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                 add(
                     Material3SettingsItem(
-                        isHighlighted = (highlightKey == "Liquid Glass"),
-                        icon = painterResource(R.drawable.palette),
-                        title = { Text(stringResource(R.string.liquid_glass_beta)) },
-                        description = { Text(stringResource(R.string.liquid_glass_desc)) },
-                        onClick = { navController.navigate("settings/appearance/liquid_glass") }
+    isHighlighted = (highlightKey == stringResource(R.string.legacy_icon)),
+                        icon = painterResource(R.drawable.legacy_icon_raster),
+                        tintIcon = false,
+                        title = { Text(stringResource(R.string.legacy_icon)) },
+                        description = { Text(stringResource(R.string.legacy_icon_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = enableLegacyIcon,
+                                onCheckedChange = { handleIconChange(it) },
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (enableLegacyIcon) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
+                        },
+                        onClick = { handleIconChange(!enableLegacyIcon) }
                     )
                 )
-
                 add(
                     Material3SettingsItem(
-                        isHighlighted = (highlightKey == stringResource(R.string.theme)),
+    isHighlighted = (highlightKey == stringResource(R.string.theme)),
                         icon = painterResource(R.drawable.palette),
                         title = { Text(stringResource(R.string.theme)) },
                         description = { Text(stringResource(R.string.theme_desc)) },
@@ -700,29 +1041,57 @@ fun AppearanceSettings(
                 )
                 add(
                     Material3SettingsItem(
-                        isHighlighted = (highlightKey == stringResource(R.string.enable_high_refresh_rate)),
+                        icon = painterResource(R.drawable.palette),
+                        title = { Text(stringResource(R.string.liquid_glass)) },
+                        description = { Text(stringResource(R.string.liquid_glass_settings)) },
+                        onClick = { navController.navigate("settings/appearance/liquidglass") }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.enable_high_refresh_rate)),
                         icon = painterResource(R.drawable.speed),
                         title = { Text(stringResource(R.string.enable_high_refresh_rate)) },
                         description = { Text(stringResource(R.string.enable_high_refresh_rate_desc)) },
                         trailingContent = {
                             Switch(
                                 checked = enableHighRefreshRate,
-                                onCheckedChange = onEnableHighRefreshRateChange
+                                onCheckedChange = onEnableHighRefreshRateChange,
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (enableHighRefreshRate) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
                             )
                         },
                         onClick = { onEnableHighRefreshRateChange(!enableHighRefreshRate) }
                     )
                 )
+                
+                
                 if (!isUsingCustomColor) {
                     add(
                         Material3SettingsItem(
-                            isHighlighted = (highlightKey == stringResource(R.string.enable_dynamic_theme)),
+    isHighlighted = (highlightKey == stringResource(R.string.enable_dynamic_theme)),
                             icon = painterResource(R.drawable.palette),
                             title = { Text(stringResource(R.string.enable_dynamic_theme)) },
                             trailingContent = {
                                 Switch(
                                     checked = dynamicTheme,
-                                    onCheckedChange = onDynamicThemeChange
+                                    onCheckedChange = onDynamicThemeChange,
+                                    thumbContent = {
+                                        Icon(
+                                            painter = painterResource(
+                                                id = if (dynamicTheme) R.drawable.check else R.drawable.close
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize)
+                                        )
+                                    }
                                 )
                             },
                             onClick = { onDynamicThemeChange(!dynamicTheme) }
@@ -739,7 +1108,7 @@ fun AppearanceSettings(
             items = buildList {
                 add(
                     Material3SettingsItem(
-                        isHighlighted = (highlightKey == stringResource(R.string.miniplayer_background_style)),
+    isHighlighted = (highlightKey == stringResource(R.string.miniplayer_background_style)),
                         icon = painterResource(R.drawable.palette),
                         title = { Text(stringResource(R.string.miniplayer_background_style)) },
                         description = {
@@ -750,6 +1119,7 @@ fun AppearanceSettings(
                                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                                     PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
+                                    PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_liquid_glass)
                                     else -> stringResource(R.string.follow_theme)
                                 }
                             )
@@ -757,25 +1127,24 @@ fun AppearanceSettings(
                         onClick = { showMiniPlayerBackgroundDialog = true }
                     )
                 )
-                add(
-                    Material3SettingsItem(
-                        isHighlighted = (highlightKey == stringResource(R.string.swipe_sensitivity)),
-                        icon = painterResource(R.drawable.tune),
-                        title = { Text(stringResource(R.string.swipe_sensitivity)) },
-                        description = { Text("${(swipeSensitivity * 100).roundToInt()}%") },
-                        onClick = { showSensitivityDialog = true }
-                    )
-                )
             }
         )
 
         Spacer(modifier = Modifier.height(27.dp))
 
+        val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
+            ThumbnailCornerRadiusKey,
+            defaultValue = 3f
+        )
+        
+        var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
+        var showThumbnailCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
+
         Material3SettingsGroup(scrollState = scrollState, 
             title = stringResource(R.string.player),
             items = listOfNotNull(
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == "Apple Music Inspired"),
+    isHighlighted = (highlightKey == "Apple Music Inspired"),
                     icon = painterResource(R.drawable.palette),
                     title = { Text("Apple Music Inspired") },
                     trailingContent = {
@@ -783,17 +1152,53 @@ fun AppearanceSettings(
                             checked = !useNewPlayerDesign,
                             onCheckedChange = { isChecked ->
                                 onUseNewPlayerDesignChange(!isChecked)
-                                if (isChecked) onPlayerBackgroundChange(PlayerBackgroundStyle.APPLE_MUSIC)
+                                if (isChecked) {
+                                    onPlayerBackgroundChange(PlayerBackgroundStyle.APPLE_MUSIC)
+                                }
+                            },
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (!useNewPlayerDesign) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
                             }
                         )
                     },
                     onClick = { 
-                        onUseNewPlayerDesignChange(useNewPlayerDesign) 
-                        if (useNewPlayerDesign) onPlayerBackgroundChange(PlayerBackgroundStyle.APPLE_MUSIC)
+                        val newAppleMusicInspired = useNewPlayerDesign
+                        onUseNewPlayerDesignChange(!newAppleMusicInspired)
+                        if (newAppleMusicInspired) {
+                            onPlayerBackgroundChange(PlayerBackgroundStyle.APPLE_MUSIC)
+                        }
                     }
                 ),
+                if (!useNewPlayerDesign) Material3SettingsItem(
+    isHighlighted = (highlightKey == "Hide volume slider"),
+                    icon = painterResource(R.drawable.linear_scale),
+                    title = { Text("Hide volume slider") },
+                    description = { Text("Hide the volume slider on the Apple Music player") },
+                    trailingContent = {
+                        Switch(
+                            checked = hidePlayerSlider,
+                            onCheckedChange = onHidePlayerSliderChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (hidePlayerSlider) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onHidePlayerSliderChange(!hidePlayerSlider) }
+                ) else null,
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.player_background_style)),
+    isHighlighted = (highlightKey == stringResource(R.string.player_background_style)),
                     icon = painterResource(R.drawable.gradient),
                     title = { Text(stringResource(R.string.player_background_style)) },
                     description = {
@@ -805,14 +1210,74 @@ fun AppearanceSettings(
                                 PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                                 PlayerBackgroundStyle.APPLE_MUSIC -> stringResource(R.string.apple_music)
                                 PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
-                                PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                                PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_liquid_glass)
                             }
                         )
                     },
-                    onClick = { showPlayerBackgroundDialog = true }
+                    onClick = { 
+                        showPlayerBackgroundDialog = true 
+                    }
                 ),
+                if (playerBackground != PlayerBackgroundStyle.APPLE_MUSIC) Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.hide_player_thumbnail)),
+                    icon = painterResource(R.drawable.hide_image),
+                    title = { Text(stringResource(R.string.hide_player_thumbnail)) },
+                    description = { Text(stringResource(R.string.hide_player_thumbnail_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = hidePlayerThumbnail,
+                            onCheckedChange = onHidePlayerThumbnailChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (hidePlayerThumbnail) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onHidePlayerThumbnailChange(!hidePlayerThumbnail) }
+                ) else null,
+                if (playerBackground != PlayerBackgroundStyle.APPLE_MUSIC) Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.thumbnail_corner_radius)),
+                    icon = painterResource(R.drawable.image),
+                    title = { Text(stringResource(R.string.thumbnail_corner_radius)) },
+                    description = { Text(stringResource(R.string.thumbnail_corner_radius_desc)) },
+                    trailingContent = {
+                        Text(
+                            text = "${thumbnailCornerRadius.roundToInt()}dp",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    onClick = { showThumbnailCornerRadiusDialog = true }
+                ) else null,
+                if (playerBackground != PlayerBackgroundStyle.APPLE_MUSIC) Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.crop_album_art)),
+                    icon = painterResource(R.drawable.crop),
+                    title = { Text(stringResource(R.string.crop_album_art)) },
+                    description = { Text(stringResource(R.string.crop_album_art_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = cropAlbumArt,
+                            onCheckedChange = onCropAlbumArtChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (cropAlbumArt) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onCropAlbumArtChange(!cropAlbumArt) }
+                ) else null,
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.player_buttons_style)),
+    isHighlighted = (highlightKey == stringResource(R.string.player_buttons_style)),
                     icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.player_buttons_style)) },
                     description = {
@@ -827,14 +1292,16 @@ fun AppearanceSettings(
                     onClick = { showPlayerButtonsStyleDialog = true }
                 ),
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.player_slider_style)),
+    isHighlighted = (highlightKey == stringResource(R.string.player_slider_style)),
                     icon = painterResource(R.drawable.sliders),
                     title = { Text(stringResource(R.string.player_slider_style)) },
                     description = {
                         Text(
                             when (sliderStyle) {
                                 SliderStyle.DEFAULT -> stringResource(R.string.default_)
-                                SliderStyle.WAVY -> if (squigglySlider) stringResource(R.string.squiggly) else stringResource(R.string.wavy)
+                                SliderStyle.WAVY -> if (squigglySlider) stringResource(R.string.squiggly) else stringResource(
+                                    R.string.wavy
+                                )
                                 SliderStyle.SLIM -> stringResource(R.string.slim)
                             }
                         )
@@ -842,64 +1309,215 @@ fun AppearanceSettings(
                     onClick = { showSliderOptionDialog = true }
                 ),
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.enable_swipe_thumbnail)),
+    isHighlighted = (highlightKey == stringResource(R.string.enable_swipe_thumbnail)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.enable_swipe_thumbnail)) },
                     trailingContent = {
-                        Switch(checked = swipeThumbnail, onCheckedChange = onSwipeThumbnailChange)
+                        Switch(
+                            checked = swipeThumbnail,
+                            onCheckedChange = onSwipeThumbnailChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (swipeThumbnail) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onSwipeThumbnailChange(!swipeThumbnail) }
                 ),
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.echomusic_canvas)),
+    isHighlighted = (highlightKey == stringResource(R.string.echomusic_canvas)),
                     icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.echomusic_canvas)) },
                     description = { Text(stringResource(R.string.echomusic_canvas_desc)) },
                     trailingContent = {
-                        Switch(checked = canvasThumbnailAnimation, onCheckedChange = onCanvasThumbnailAnimationChange)
+                        Switch(
+                            checked = canvasThumbnailAnimation,
+                            onCheckedChange = onCanvasThumbnailAnimationChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (canvasThumbnailAnimation) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onCanvasThumbnailAnimationChange(!canvasThumbnailAnimation) }
                 ),
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.rotating_thumbnail)),
+    isHighlighted = (highlightKey == stringResource(R.string.rotating_thumbnail)),
                     icon = painterResource(R.drawable.image),
                     title = { Text(stringResource(R.string.rotating_thumbnail)) },
                     description = { Text(stringResource(R.string.rotating_thumbnail_desc)) },
                     trailingContent = {
-                        Switch(checked = rotatingThumbnail, onCheckedChange = onRotatingThumbnailChange)
+                        Switch(
+                            checked = rotatingThumbnail,
+                            onCheckedChange = onRotatingThumbnailChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (rotatingThumbnail) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onRotatingThumbnailChange(!rotatingThumbnail) }
                 ),
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.show_comment_button)),
+    isHighlighted = (highlightKey == stringResource(R.string.show_comment_button)),
                     icon = painterResource(R.drawable.chat_msg),
                     title = { Text(stringResource(R.string.show_comment_button)) },
                     description = { Text(stringResource(R.string.show_comment_button_description)) },
                     trailingContent = {
-                        Switch(checked = showCommentButton, onCheckedChange = onShowCommentButtonChange)
+                        Switch(
+                            checked = showCommentButton,
+                            onCheckedChange = onShowCommentButtonChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showCommentButton) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onShowCommentButtonChange(!showCommentButton) }
                 ),
                 Material3SettingsItem(
-                    isHighlighted = (highlightKey == "Show codec on player"),
+    isHighlighted = (highlightKey == "Show codec on player"),
                     icon = painterResource(R.drawable.info),
                     title = { Text("Show codec on player") },
                     description = { Text("Display audio codec information below the timeline") },
                     trailingContent = {
-                        Switch(checked = showCodecOnPlayer, onCheckedChange = onShowCodecOnPlayerChange)
+                        Switch(
+                            checked = showCodecOnPlayer,
+                            onCheckedChange = onShowCodecOnPlayerChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showCodecOnPlayer) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
-                    onClick = { onShowCodecOnPlayerChange(!showCodecOnPlayer) }
-                )
+                ),
+                if (swipeThumbnail) Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.swipe_sensitivity)),
+                    icon = painterResource(R.drawable.tune),
+                    title = { Text(stringResource(R.string.swipe_sensitivity)) },
+                    description = {
+                        Text(
+                            stringResource(
+                                R.string.sensitivity_percentage,
+                                (swipeSensitivity * 100).roundToInt()
+                            )
+                        )
+                    },
+                    onClick = { showSensitivityDialog = true }
+                ) else null
             )
         )
+
+        if (showSensitivityDialog) {
+            var tempSensitivity by remember { mutableFloatStateOf(swipeSensitivity) }
+
+            DefaultDialog(
+                onDismiss = {
+                    tempSensitivity = swipeSensitivity
+                    showSensitivityDialog = false
+                },
+                buttons = {
+                    TextButton(
+                        onClick = {
+                            tempSensitivity = 0.73f
+                        }
+                    ) {
+                        Text(stringResource(R.string.reset))
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    TextButton(
+                        onClick = {
+                            tempSensitivity = swipeSensitivity
+                            showSensitivityDialog = false
+                        }
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                    TextButton(
+                        onClick = {
+                            onSwipeSensitivityChange(tempSensitivity)
+                            showSensitivityDialog = false
+                        }
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.swipe_sensitivity),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Text(
+                        text = stringResource(
+                            R.string.sensitivity_percentage,
+                            (tempSensitivity * 100).roundToInt()
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Slider(
+                        value = tempSensitivity,
+                        onValueChange = { tempSensitivity = it },
+                        valueRange = 0f..1f,
+                                    
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        if (showThumbnailCornerRadiusDialog) {
+            ThumbnailCornerRadiusModal(
+                initialRadius = thumbnailCornerRadius,
+                onDismiss = { showThumbnailCornerRadiusDialog = false },
+                onRadiusSelected = { radius ->
+                    onThumbnailCornerRadiusChange(radius)
+                    showThumbnailCornerRadiusDialog = false
+                }
+            )
+        }
 
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(scrollState = scrollState, 
             title = stringResource(R.string.lyrics),
-            items = buildList {
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_text_position)),
+            items = listOfNotNull(
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_text_position)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_text_position)) },
                     description = {
@@ -912,9 +1530,9 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { showLyricsPositionDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_animation_style)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_animation_style)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_animation_style)) },
                     description = {
@@ -925,118 +1543,216 @@ fun AppearanceSettings(
                                 LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
                                 LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                                 LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
+                                LyricsAnimationStyle.echomusic_1 -> stringResource(R.string.echomusic_1)
                                 LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
                                 LyricsAnimationStyle.APPLE_V2 -> stringResource(R.string.apple_music_style_letter)
-                                LyricsAnimationStyle.echomusic_1 -> stringResource(R.string.echomusic_1)
                                 LyricsAnimationStyle.LYRICS_V2 -> stringResource(R.string.lyrics_v2_fluid)
                                 LyricsAnimationStyle.METRO_LYRICS -> stringResource(R.string.lyrics_animation_metro)
                             }
                         )
                     },
                     onClick = { showLyricsAnimationStyleDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_glow_effect)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_glow_effect)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_glow_effect)) },
                     description = { Text(stringResource(R.string.lyrics_glow_effect_desc)) },
                     trailingContent = {
-                        Switch(checked = lyricsGlowEffect, onCheckedChange = onLyricsGlowEffectChange)
+                        Switch(
+                            checked = lyricsGlowEffect,
+                            onCheckedChange = onLyricsGlowEffectChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (lyricsGlowEffect) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onLyricsGlowEffectChange(!lyricsGlowEffect) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.apple_music_lyrics_blur)),
-                    icon = painterResource(R.drawable.lyrics),
-                    title = { Text(stringResource(R.string.apple_music_lyrics_blur)) },
-                    description = { Text(stringResource(R.string.apple_music_lyrics_blur_desc)) },
-                    trailingContent = {
-                        Switch(checked = appleMusicLyricsBlur, onCheckedChange = onAppleMusicLyricsBlurChange)
-                    },
-                    onClick = { onAppleMusicLyricsBlurChange(!appleMusicLyricsBlur) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.standard_lyrics_blur)),
+                ),
+                if (lyricsAnimationStyle == LyricsAnimationStyle.echomusic_1) {
+                    Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.apple_music_lyrics_blur)),
+                        icon = painterResource(R.drawable.lyrics),
+                        title = { Text(stringResource(R.string.apple_music_lyrics_blur)) },
+                        description = { Text(stringResource(R.string.apple_music_lyrics_blur_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = appleMusicLyricsBlur,
+                                onCheckedChange = onAppleMusicLyricsBlurChange,
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (appleMusicLyricsBlur) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
+                        },
+                        onClick = { onAppleMusicLyricsBlurChange(!appleMusicLyricsBlur) }
+                    )
+                } else null,
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.standard_lyrics_blur)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.standard_lyrics_blur)) },
                     description = { Text(stringResource(R.string.apple_music_lyrics_blur_desc)) },
                     trailingContent = {
-                        Switch(checked = lyricsStandardBlur, onCheckedChange = onLyricsStandardBlurChange)
+                        Switch(
+                            checked = lyricsStandardBlur,
+                            onCheckedChange = onLyricsStandardBlurChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (lyricsStandardBlur) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onLyricsStandardBlurChange(!lyricsStandardBlur) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_text_size)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_text_size)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_text_size)) },
                     description = { Text("${lyricsTextSize.roundToInt()} sp") },
                     onClick = { showLyricsTextSizeDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_line_spacing)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_line_spacing)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_line_spacing)) },
                     description = { Text("${String.format("%.1f", lyricsLineSpacing)}x") },
                     onClick = { showLyricsLineSpacingDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_click_change)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_click_change)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_click_change)) },
                     trailingContent = {
-                        Switch(checked = lyricsClick, onCheckedChange = onLyricsClickChange)
+                        Switch(
+                            checked = lyricsClick,
+                            onCheckedChange = onLyricsClickChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (lyricsClick) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onLyricsClickChange(!lyricsClick) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_auto_scroll)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_auto_scroll)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_auto_scroll)) },
                     trailingContent = {
-                        Switch(checked = lyricsScroll, onCheckedChange = onLyricsScrollChange)
+                        Switch(
+                            checked = lyricsScroll,
+                            onCheckedChange = onLyricsScrollChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (lyricsScroll) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onLyricsScrollChange(!lyricsScroll) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_swipe_to_change_song)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_swipe_to_change_song)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.lyrics_swipe_to_change_song)) },
                     description = { Text(stringResource(R.string.lyrics_swipe_to_change_song_desc)) },
                     trailingContent = {
-                        Switch(checked = swipeLyrics, onCheckedChange = onSwipeLyricsChange)
+                        Switch(
+                            checked = swipeLyrics,
+                            onCheckedChange = onSwipeLyricsChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (swipeLyrics) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onSwipeLyricsChange(!swipeLyrics) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.lyrics_thumbnail_play_pause)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.lyrics_thumbnail_play_pause)),
                     icon = painterResource(R.drawable.play),
                     title = { Text(stringResource(R.string.lyrics_thumbnail_play_pause)) },
                     description = { Text(stringResource(R.string.lyrics_thumbnail_play_pause_desc)) },
                     trailingContent = {
-                        Switch(checked = enableLyricsThumbnailPlayPause, onCheckedChange = onEnableLyricsThumbnailPlayPauseChange)
+                        Switch(
+                            checked = enableLyricsThumbnailPlayPause,
+                            onCheckedChange = onEnableLyricsThumbnailPlayPauseChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (enableLyricsThumbnailPlayPause) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onEnableLyricsThumbnailPlayPauseChange(!enableLyricsThumbnailPlayPause) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.hide_status_bar_on_fullscreen)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.hide_status_bar_on_fullscreen)),
                     icon = painterResource(R.drawable.fullscreen),
                     title = { Text(stringResource(R.string.hide_status_bar_on_fullscreen)) },
                     description = { Text(stringResource(R.string.hide_status_bar_on_fullscreen_desc)) },
                     trailingContent = {
-                        Switch(checked = hideStatusBarOnFullscreen, onCheckedChange = onHideStatusBarOnFullscreenChange)
+                        Switch(
+                            checked = hideStatusBarOnFullscreen,
+                            onCheckedChange = onHideStatusBarOnFullscreenChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (hideStatusBarOnFullscreen) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onHideStatusBarOnFullscreenChange(!hideStatusBarOnFullscreen) }
-                ))
-            }
+                )
+            )
         )
 
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(scrollState = scrollState, 
             title = stringResource(R.string.misc),
-            items = buildList {
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.default_open_tab)),
+            items = listOf(
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.default_open_tab)),
                     icon = painterResource(R.drawable.nav_bar),
                     title = { Text(stringResource(R.string.default_open_tab)) },
                     description = {
@@ -1049,9 +1765,9 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { showDefaultOpenTabDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.default_lib_chips)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.default_lib_chips)),
                     icon = painterResource(R.drawable.tab),
                     title = { Text(stringResource(R.string.default_lib_chips)) },
                     description = {
@@ -1067,37 +1783,95 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { showDefaultChipDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_add)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_add)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.swipe_song_to_add)) },
                     trailingContent = {
-                        Switch(checked = swipeToSong, onCheckedChange = onSwipeToSongChange)
+                        Switch(
+                            checked = swipeToSong,
+                            onCheckedChange = onSwipeToSongChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (swipeToSong) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onSwipeToSongChange(!swipeToSong) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_remove)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.enable_haptics)),
+                    icon = painterResource(R.drawable.vibration),
+                    title = { Text(stringResource(R.string.enable_haptics)) },
+                    description = { Text(stringResource(R.string.enable_haptics_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = enableHaptics,
+                            onCheckedChange = onEnableHapticsChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (enableHaptics) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onEnableHapticsChange(!enableHaptics) }
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_remove)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.swipe_song_to_remove)) },
                     trailingContent = {
-                        Switch(checked = swipeToRemoveSong, onCheckedChange = onSwipeToRemoveSongChange)
+                        Switch(
+                            checked = swipeToRemoveSong,
+                            onCheckedChange = onSwipeToRemoveSongChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (swipeToRemoveSong) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onSwipeToRemoveSongChange(!swipeToRemoveSong) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.listen_together_in_top_bar)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.listen_together_in_top_bar)),
                     icon = painterResource(R.drawable.group_outlined),
                     title = { Text(stringResource(R.string.listen_together_in_top_bar)) },
                     description = { Text(stringResource(R.string.listen_together_in_top_bar_desc)) },
                     trailingContent = {
-                        Switch(checked = listenTogetherInTopBar, onCheckedChange = onListenTogetherInTopBarChange)
+                        Switch(
+                            checked = listenTogetherInTopBar,
+                            onCheckedChange = onListenTogetherInTopBarChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (listenTogetherInTopBar) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onListenTogetherInTopBarChange(!listenTogetherInTopBar) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.grid_cell_size)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.grid_cell_size)),
                     icon = painterResource(R.drawable.grid_view),
                     title = { Text(stringResource(R.string.grid_cell_size)) },
                     description = {
@@ -1109,111 +1883,133 @@ fun AppearanceSettings(
                         )
                     },
                     onClick = { showGridSizeDialog = true }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == "Interactive Lock Screen"),
-                    icon = painterResource(R.drawable.lock),
-                    title = { Text("Interactive Lock Screen Widget") },
-                    description = { Text("Custom lock screen overlay (Android 12+)") },
-                    trailingContent = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (!android.provider.Settings.canDrawOverlays(context)) {
-                                TextButton(onClick = {
-                                    val intent = Intent(
-                                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                        android.net.Uri.parse("package:${context.packageName}")
-                                    )
-                                    context.startActivity(intent)
-                                }) {
-                                    Text("Grant Permission", color = MaterialTheme.colorScheme.error)
-                                }
-                            }
-                            TextButton(onClick = {
-                                context.startActivity(Intent(context, iad1tya.echo.music.ui.player.LockScreenActivity::class.java).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                })
-                            }) {
-                                Text("Test")
-                            }
-                            Switch(checked = lockScreenOverlay, onCheckedChange = onLockScreenOverlayChange)
-                        }
-                    },
-                    onClick = { onLockScreenOverlayChange(!lockScreenOverlay) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == "Dynamic Capsule"),
-                    icon = painterResource(R.drawable.palette),
-                    title = { Text("Dynamic Mini-Capsule") },
-                    description = { Text("Nothing-style status bar pill when app is in background") },
-                    trailingContent = {
-                        Switch(checked = dynamicCapsule, onCheckedChange = onDynamicCapsuleChange)
-                    },
-                    onClick = { onDynamicCapsuleChange(!dynamicCapsule) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.display_density)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.display_density)),
                     icon = painterResource(R.drawable.grid_view),
                     title = { Text(stringResource(R.string.display_density)) },
-                    description = { Text(DensityScale.fromValue(densityScale).label) },
+                    description = {
+                        Text(DensityScale.fromValue(densityScale).label)
+                    },
                     onClick = { showDensityScaleDialog = true }
-                ))
-            }
+                )
+            )
         )
 
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(scrollState = scrollState, 
             title = stringResource(R.string.auto_playlists),
-            items = buildList {
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.show_liked_playlist)),
+            items = listOf(
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.show_liked_playlist)),
                     icon = painterResource(R.drawable.favorite),
                     title = { Text(stringResource(R.string.show_liked_playlist)) },
                     trailingContent = {
-                        Switch(checked = showLikedPlaylist, onCheckedChange = onShowLikedPlaylistChange)
+                        Switch(
+                            checked = showLikedPlaylist,
+                            onCheckedChange = onShowLikedPlaylistChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showLikedPlaylist) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onShowLikedPlaylistChange(!showLikedPlaylist) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.show_downloaded_playlist)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.show_downloaded_playlist)),
                     icon = painterResource(R.drawable.offline),
                     title = { Text(stringResource(R.string.show_downloaded_playlist)) },
                     trailingContent = {
-                        Switch(checked = showDownloadedPlaylist, onCheckedChange = onShowDownloadedPlaylistChange)
+                        Switch(
+                            checked = showDownloadedPlaylist,
+                            onCheckedChange = onShowDownloadedPlaylistChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showDownloadedPlaylist) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onShowDownloadedPlaylistChange(!showDownloadedPlaylist) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.action_exported)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.action_exported)),
                     icon = painterResource(R.drawable.download),
                     title = { Text(stringResource(R.string.action_exported)) },
                     trailingContent = {
-                        Switch(checked = showExportedPlaylist, onCheckedChange = onShowExportedPlaylistChange)
+                        Switch(
+                            checked = showExportedPlaylist,
+                            onCheckedChange = onShowExportedPlaylistChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showExportedPlaylist) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onShowExportedPlaylistChange(!showExportedPlaylist) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.show_top_playlist)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.show_top_playlist)),
                     icon = painterResource(R.drawable.trending_up),
                     title = { Text(stringResource(R.string.show_top_playlist)) },
                     trailingContent = {
-                        Switch(checked = showTopPlaylist, onCheckedChange = onShowTopPlaylistChange)
+                        Switch(
+                            checked = showTopPlaylist,
+                            onCheckedChange = onShowTopPlaylistChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showTopPlaylist) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onShowTopPlaylistChange(!showTopPlaylist) }
-                ))
-                add(Material3SettingsItem(
-                    isHighlighted = (highlightKey == stringResource(R.string.show_cached_playlist)),
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == stringResource(R.string.show_cached_playlist)),
                     icon = painterResource(R.drawable.cached),
                     title = { Text(stringResource(R.string.show_cached_playlist)) },
                     trailingContent = {
-                        Switch(checked = showCachedPlaylist, onCheckedChange = onShowCachedPlaylistChange)
+                        Switch(
+                            checked = showCachedPlaylist,
+                            onCheckedChange = onShowCachedPlaylistChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showCachedPlaylist) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
                     },
                     onClick = { onShowCachedPlaylistChange(!showCachedPlaylist) }
-                ))
-            }
+                )
+            )
         )
-        
         Spacer(modifier = Modifier.height(16.dp))
+    
         Spacer(Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)))
     }
 
@@ -1224,12 +2020,34 @@ fun AppearanceSettings(
                 onClick = navController::navigateUp,
                 onLongClick = navController::backToMain,
             ) {
-                Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                Icon(
+                    painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
             }
         }
     )
 }
 
-enum class DarkMode { ON, OFF, AUTO }
-enum class NavigationTab { HOME, SEARCH, LIBRARY }
-enum class LyricsPosition { LEFT, CENTER, RIGHT }
+enum class DarkMode {
+    ON,
+    OFF,
+    AUTO,
+}
+
+enum class NavigationTab {
+    HOME,
+    SEARCH,
+    LIBRARY,
+}
+
+enum class LyricsPosition {
+    LEFT,
+    CENTER,
+    RIGHT,
+}
+
+enum class PlayerTextAlignment {
+    SIDED,
+    CENTER,
+}

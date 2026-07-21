@@ -10,8 +10,6 @@ import androidx.compose.ui.graphics.Color
 import iad1tya.echo.music.constants.PlayerBackgroundStyle
 
 
-import iad1tya.echo.music.ui.theme.LocalPurpleTheme
-
 object PlayerSliderColors {
 
     
@@ -21,32 +19,27 @@ object PlayerSliderColors {
         playerBackground: PlayerBackgroundStyle,
         useDarkTheme: Boolean
     ): SliderColors {
-        val isPurple = LocalPurpleTheme.current
-        val effectiveActiveColor = if (isPurple) Color(0xFF8B5CF6) else activeColor
-        
         val inactiveTrackColor = when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> {
-                if (isPurple) {
-                    Color(0xFF8B5CF6).copy(alpha = 0.25f)
-                } else if (useDarkTheme) {
+                if (useDarkTheme) {
                     MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 }
             }
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH, PlayerBackgroundStyle.LIQUID_GLASS -> {
-                if (isPurple) Color(0xFF8B5CF6).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.4f)
+                Color.White.copy(alpha = 0.4f)
             }
         }
         
         return SliderDefaults.colors(
-            activeTrackColor = effectiveActiveColor,
-            activeTickColor = effectiveActiveColor,
-            thumbColor = effectiveActiveColor,
+            activeTrackColor = activeColor,
+            activeTickColor = activeColor,
+            thumbColor = activeColor,
             inactiveTrackColor = inactiveTrackColor,
-            disabledActiveTrackColor = effectiveActiveColor,
+            disabledActiveTrackColor = activeColor,
             disabledInactiveTrackColor = inactiveTrackColor,
-            disabledThumbColor = effectiveActiveColor
+            disabledThumbColor = activeColor
         )
     }
 }

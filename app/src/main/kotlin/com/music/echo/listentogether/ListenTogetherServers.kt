@@ -26,7 +26,7 @@ object ListenTogetherServers {
     private val _servers = MutableStateFlow(
         listOf(
             ListenTogetherServer(
-                name = "MelodyX Server",
+                name = "Echo Music Server",
                 url = "wss://iad1tya-echomusic.hf.space/ws",
                 location = "Global",
                 operator = "ECHO"

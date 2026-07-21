@@ -9,7 +9,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -59,13 +58,6 @@ import androidx.compose.ui.unit.dp
 import iad1tya.echo.music.R
 import iad1tya.echo.music.ui.screens.OptionStats
 
-import androidx.compose.ui.graphics.Brush
-import iad1tya.echo.music.ui.theme.LocalPurpleTheme
-
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.draw.drawBehind
-import iad1tya.echo.music.utils.rememberPreference
-
 @Composable
 fun <E> ChipsRow(
     chips: List<Pair<E, String>>,
@@ -74,8 +66,6 @@ fun <E> ChipsRow(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
-    val isPurple = LocalPurpleTheme.current
-    val partyMode by rememberPreference(iad1tya.echo.music.constants.PartyModeKey, defaultValue = false)
     Row(
         modifier =
         modifier
@@ -88,29 +78,22 @@ fun <E> ChipsRow(
 
         chips.forEach { (value, label) ->
             val isSelected = currentValue == value
-            val isPartyChip = partyMode && label.equals("Party", ignoreCase = true)
 
             
             val cornerRadius by animateDpAsState(
                 targetValue = if (isSelected) 20.dp else 8.dp,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessMedium
                 ),
                 label = "corner_radius"
             )
 
             FilterChip(
-                label = { 
-                    Text(
-                        text = label,
-                        color = if ((isSelected && isPurple) || isPartyChip) Color.White else MaterialTheme.colorScheme.onSurface
-                    ) 
-                },
+                label = { Text(label) },
                 selected = isSelected,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = containerColor,
-                    selectedContainerColor = if (isPurple || isPartyChip) Color.Transparent else MaterialTheme.colorScheme.primaryContainer,
                 ),
                 onClick = { onValueUpdate(value) },
                 leadingIcon = if (isSelected) {
@@ -119,29 +102,19 @@ fun <E> ChipsRow(
                             imageVector = Icons.Filled.Done,
                             contentDescription = null,
                             modifier = Modifier.size(FilterChipDefaults.IconSize),
-                            tint = if (isPurple || isPartyChip) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 } else {
                     null
                 },
                 shape = RoundedCornerShape(cornerRadius),
-                border = if (isPartyChip) BorderStroke(1.5.dp, Brush.linearGradient(listOf(Color(0xFFFF00FF), Color(0xFF00FFFF)))) else null,
-                modifier = Modifier
-                    .animateContentSize()
-                    .let { 
-                        if (isSelected && isPurple) {
-                            it.background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF8B5CF6),
-                                        Color(0xFF7C3AED)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(cornerRadius)
-                            )
-                        } else it
-                    }
+                border = null,
+                modifier = Modifier.animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
             )
 
             Spacer(Modifier.width(8.dp))

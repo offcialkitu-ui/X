@@ -22,7 +22,7 @@ import iad1tya.echo.music.db.daos.SpeedDialDao
 import iad1tya.echo.music.db.entities.AlbumArtistMap
 import iad1tya.echo.music.db.entities.AlbumEntity
 import iad1tya.echo.music.db.entities.ArtistEntity
-import iad1tya.echo.music.db.entities.BrainActivityLogEntity
+import iad1tya.echo.music.db.entities.BeatInfoEntity
 import iad1tya.echo.music.db.entities.Event
 import iad1tya.echo.music.db.entities.FormatEntity
 import iad1tya.echo.music.db.entities.LyricsEntity
@@ -30,7 +30,6 @@ import iad1tya.echo.music.db.entities.PlayCountEntity
 import iad1tya.echo.music.db.entities.PlaylistEntity
 import iad1tya.echo.music.db.entities.PlaylistSongMap
 import iad1tya.echo.music.db.entities.PlaylistSongMapPreview
-import iad1tya.echo.music.db.entities.PlayEventEntity
 import iad1tya.echo.music.db.entities.RecognitionHistory
 import iad1tya.echo.music.db.entities.RelatedSongMap
 import iad1tya.echo.music.db.entities.SearchHistory
@@ -41,8 +40,6 @@ import iad1tya.echo.music.db.entities.SongEntity
 import iad1tya.echo.music.db.entities.SpeedDialItem
 import iad1tya.echo.music.db.entities.SortedSongAlbumMap
 import iad1tya.echo.music.db.entities.SortedSongArtistMap
-import iad1tya.echo.music.db.entities.TasteProfileEntity
-import iad1tya.echo.music.db.daos.EchoBrainDao
 import iad1tya.echo.music.extensions.toSQLiteQuery
 import timber.log.Timber
 import java.time.Instant
@@ -55,9 +52,6 @@ class MusicDatabase(
 ) : DatabaseDao by delegate.dao {
     val speedDialDao: SpeedDialDao
         get() = delegate.speedDialDao
-
-    val echoBrainDao: EchoBrainDao
-        get() = delegate.echoBrainDao
 
     val openHelper: SupportSQLiteOpenHelper
         get() = delegate.openHelper
@@ -111,16 +105,14 @@ class MusicDatabase(
         PlayCountEntity::class,
         RecognitionHistory::class,
         SpeedDialItem::class,
-        BrainActivityLogEntity::class,
-        PlayEventEntity::class,
-        TasteProfileEntity::class
+        BeatInfoEntity::class
     ],
     views = [
         SortedSongArtistMap::class,
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 39,
+    version = 43,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -149,21 +141,19 @@ class MusicDatabase(
         AutoMigration(from = 25, to = 26),
         AutoMigration(from = 26, to = 27),
         AutoMigration(from = 27, to = 28),
-        AutoMigration(from = 28, to = 29),
         AutoMigration(from = 30, to = 31),
-        AutoMigration(from = 31, to = 32),
         AutoMigration(from = 32, to = 33),
         AutoMigration(from = 33, to = 34),
         AutoMigration(from = 34, to = 35),
         AutoMigration(from = 35, to = 36),
         AutoMigration(from = 36, to = 37, spec = Migration36To37Spec::class),
+        AutoMigration(from = 41, to = 42, spec = Migration41To42::class),
     ],
 )
 @TypeConverters(Converters::class)
 abstract class InternalDatabase : RoomDatabase() {
     abstract val dao: DatabaseDao
     abstract val speedDialDao: SpeedDialDao
-    abstract val echoBrainDao: EchoBrainDao
 
     companion object {
         const val DB_NAME = "song.db"
@@ -171,36 +161,42 @@ abstract class InternalDatabase : RoomDatabase() {
         fun newInstance(context: Context): MusicDatabase =
             MusicDatabase(
                 delegate =
-                Room
-                    .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
-                    .addMigrations(
-                        MIGRATION_1_2,
-                        MIGRATION_21_24,
-                        MIGRATION_22_24,
-                        MIGRATION_24_25,
-                        MIGRATION_27_28,
-                        MIGRATION_29_30,
-                        MIGRATION_36_37,
-                        MIGRATION_37_38,
-                        MIGRATION_38_39,
-                    )
-                    .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                    .setTransactionExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
-                    .setQueryExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onOpen(db: SupportSQLiteDatabase) {
-                            super.onOpen(db)
-                            try {
-                                db.query("PRAGMA busy_timeout = 60000").close()
-                                db.query("PRAGMA cache_size = -16000").close()
-                                db.query("PRAGMA wal_autocheckpoint = 1000").close()
-                                db.query("PRAGMA synchronous = NORMAL").close()
-                            } catch (e: Exception) {
-                                Timber.tag("MusicDatabase").e(e, "Failed to set PRAGMA settings")
+                    Room
+                        .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
+                        .addMigrations(
+                            MIGRATION_1_2,
+                            MIGRATION_21_24,
+                            MIGRATION_22_24,
+                            MIGRATION_24_25,
+                            MIGRATION_27_28,
+                            MIGRATION_28_29,
+                            MIGRATION_29_30,
+                            MIGRATION_31_32,
+                            MIGRATION_36_37,
+                            MIGRATION_37_38,
+                            MIGRATION_38_39,
+                            MIGRATION_39_40,
+                            MIGRATION_40_41,
+                            MIGRATION_41_42,
+                            MIGRATION_42_43,
+                        )
+                        .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                        .setTransactionExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
+                        .setQueryExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
+                        .addCallback(object : RoomDatabase.Callback() {
+                            override fun onOpen(db: SupportSQLiteDatabase) {
+                                super.onOpen(db)
+                                try {
+                                    db.query("PRAGMA busy_timeout = 60000").close()
+                                    db.query("PRAGMA cache_size = -16000").close()
+                                    db.query("PRAGMA wal_autocheckpoint = 1000").close()
+                                    db.query("PRAGMA synchronous = NORMAL").close()
+                                } catch (e: Exception) {
+                                    Timber.tag("MusicDatabase").e(e, "Failed to set PRAGMA settings")
+                                }
                             }
-                        }
-                    })
-                    .build(),
+                        })
+                        .build(),
             )
     }
 }
@@ -416,9 +412,9 @@ val MIGRATION_1_2 =
 val MIGRATION_21_24 =
     object : Migration(21, 24) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            
-            
-            
+
+
+
             try {
                 db.execSQL("ALTER TABLE song ADD COLUMN libraryAddToken TEXT DEFAULT ''")
             } catch (e: Exception) {
@@ -440,7 +436,7 @@ val MIGRATION_21_24 =
                 Timber.tag("Migration").w("Column isDownloaded may already exist")
             }
 
-            
+
             var hasIsUploaded = false
             db.query("PRAGMA table_info('song')").use { cursor ->
                 val nameIndex = cursor.getColumnIndex("name")
@@ -452,7 +448,7 @@ val MIGRATION_21_24 =
                     }
                 }
             }
-            
+
             if (!hasIsUploaded) {
                 db.execSQL("ALTER TABLE `song` ADD COLUMN `isUploaded` INTEGER NOT NULL DEFAULT 0")
             }
@@ -462,7 +458,7 @@ val MIGRATION_21_24 =
 val MIGRATION_22_24 =
     object : Migration(22, 24) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            
+
             var hasIsUploaded = false
             db.query("PRAGMA table_info('song')").use { cursor ->
                 val nameIndex = cursor.getColumnIndex("name")
@@ -474,13 +470,49 @@ val MIGRATION_22_24 =
                     }
                 }
             }
-            
+
             if (!hasIsUploaded) {
                 db.execSQL("ALTER TABLE `song` ADD COLUMN `isUploaded` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
 
+val MIGRATION_31_32 = object : Migration(31, 32) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+
+        if (!hasColumn(db, "lyrics", "provider")) {
+            try {
+                db.execSQL("ALTER TABLE lyrics ADD COLUMN provider TEXT NOT NULL DEFAULT 'Unknown'")
+            } catch (e: Exception) {
+                Timber.tag("MIGRATION_31_32").w(e, "Column provider may already exist")
+            }
+        }
+
+        if (!hasColumn(db, "lyrics", "translatedLyrics")) {
+            try {
+                db.execSQL("ALTER TABLE lyrics ADD COLUMN translatedLyrics TEXT NOT NULL DEFAULT ''")
+            } catch (e: Exception) {
+                Timber.tag("MIGRATION_31_32").w(e, "Column translatedLyrics may already exist")
+            }
+        }
+
+        if (!hasColumn(db, "lyrics", "translationLanguage")) {
+            try {
+                db.execSQL("ALTER TABLE lyrics ADD COLUMN translationLanguage TEXT NOT NULL DEFAULT ''")
+            } catch (e: Exception) {
+                Timber.tag("MIGRATION_31_32").w(e, "Column translationLanguage may already exist")
+            }
+        }
+
+        if (!hasColumn(db, "lyrics", "translationMode")) {
+            try {
+                db.execSQL("ALTER TABLE lyrics ADD COLUMN translationMode TEXT NOT NULL DEFAULT ''")
+            } catch (e: Exception) {
+                Timber.tag("MIGRATION_31_32").w(e, "Column translationMode may already exist")
+            }
+        }
+    }
+}
 
 
 @DeleteColumn.Entries(
@@ -558,13 +590,13 @@ class Migration11To12 : AutoMigrationSpec {
                     table = "album",
                     conflictAlgorithm = SQLiteDatabase.CONFLICT_IGNORE,
                     values =
-                    contentValuesOf(
-                        "id" to albumId,
-                        "title" to albumName,
-                        "songCount" to 0,
-                        "duration" to 0,
-                        "lastUpdateTime" to 0,
-                    ),
+                        contentValuesOf(
+                            "id" to albumId,
+                            "title" to albumName,
+                            "songCount" to 0,
+                            "duration" to 0,
+                            "lastUpdateTime" to 0,
+                        ),
                 )
             }
         }
@@ -647,7 +679,7 @@ class Migration21To22 : AutoMigrationSpec {
 
 class Migration22To23 : AutoMigrationSpec {
     override fun onPostMigrate(db: SupportSQLiteDatabase) {
-        
+
     }
 }
 
@@ -674,7 +706,7 @@ class Migration23To24: AutoMigrationSpec {
 val MIGRATION_24_25 =
     object : Migration(24, 25) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            
+
             var columnExists = false
             db.query("PRAGMA table_info(format)").use { cursor ->
                 val nameIndex = cursor.getColumnIndex("name")
@@ -687,7 +719,7 @@ val MIGRATION_24_25 =
             }
 
             if (!columnExists) {
-                
+
                 db.execSQL("ALTER TABLE format ADD COLUMN perceptualLoudnessDb REAL DEFAULT NULL")
             }
         }
@@ -804,8 +836,10 @@ val MIGRATION_27_28 =
             db.execSQL("INSERT INTO `_new_album` (`id`,`playlistId`,`title`,`year`,`thumbnailUrl`,`themeColor`,`songCount`,`duration`,`explicit`,`lastUpdateTime`,`bookmarkedAt`,`likedDate`,`inLibrary`,`isLocal`,`isUploaded`) SELECT `id`,`playlistId`,`title`,`year`,`thumbnailUrl`,`themeColor`,`songCount`,`duration`,`explicit`,`lastUpdateTime`,`bookmarkedAt`,`likedDate`,`inLibrary`,`isLocal`,`isUploaded` FROM `album`")
             db.execSQL("DROP TABLE `album`")
             db.execSQL("ALTER TABLE `_new_album` RENAME TO `album`")
-            db.execSQL("CREATE TABLE IF NOT EXISTS `_new_playlist` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `browseId` TEXT, `createdAt` INTEGER, `lastUpdateTime` INTEGER, `isEditable` INTEGER NOT NULL DEFAULT true, `bookmarkedAt` INTEGER, `remoteSongCount` INTEGER, `playEndpointParams` TEXT, `thumbnailUrl` TEXT, `shuffleEndpointParams` TEXT, `radioEndpointParams` TEXT, `isLocal` INTEGER NOT NULL DEFAULT false, PRIMARY KEY(`id`))")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `_new_playlist` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `browseId` TEXT, `createdAt` INTEGER, `lastUpdateTime` INTEGER, `isEditable` INTEGER NOT NULL DEFAULT true, `bookmarkedAt` INTEGER, `remoteSongCount` INTEGER, `playEndpointParams` TEXT, `thumbnailUrl` TEXT, `shuffleEndpointParams` TEXT, `radioEndpointParams` TEXT, `isLocal` INTEGER NOT NULL DEFAULT false, `isAutoSync` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))")
             db.execSQL("INSERT INTO `_new_playlist` (`id`,`name`,`browseId`,`createdAt`,`lastUpdateTime`,`isEditable`,`bookmarkedAt`,`remoteSongCount`,`playEndpointParams`,`thumbnailUrl`,`shuffleEndpointParams`,`radioEndpointParams`,`isLocal`) SELECT `id`,`name`,`browseId`,`createdAt`,`lastUpdateTime`,`isEditable`,`bookmarkedAt`,`remoteSongCount`,`playEndpointParams`,`thumbnailUrl`,`shuffleEndpointParams`,`radioEndpointParams`,`isLocal` FROM `playlist`")
+
+            db.execSQL("UPDATE `_new_playlist` SET `isAutoSync` = 0")
             db.execSQL("DROP TABLE `playlist`")
             db.execSQL("ALTER TABLE `_new_playlist` RENAME TO `playlist`")
             db.execSQL("CREATE VIEW `sorted_song_artist_map` AS SELECT * FROM song_artist_map ORDER BY position")
@@ -813,6 +847,22 @@ val MIGRATION_27_28 =
             db.execSQL("CREATE VIEW `playlist_song_map_preview` AS SELECT * FROM playlist_song_map WHERE position <= 3 ORDER BY position")
         }
     }
+
+val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP VIEW IF EXISTS sorted_song_artist_map")
+        db.execSQL("DROP VIEW IF EXISTS sorted_song_album_map")
+        db.execSQL("DROP VIEW IF EXISTS playlist_song_map_preview")
+
+        if (!hasColumn(db, "playlist", "isAutoSync")) {
+            db.execSQL("ALTER TABLE `playlist` ADD COLUMN `isAutoSync` INTEGER NOT NULL DEFAULT false")
+        }
+
+        db.execSQL("CREATE VIEW `sorted_song_artist_map` AS SELECT * FROM song_artist_map ORDER BY position")
+        db.execSQL("CREATE VIEW `sorted_song_album_map` AS SELECT * FROM song_album_map ORDER BY `index`")
+        db.execSQL("CREATE VIEW `playlist_song_map_preview` AS SELECT * FROM playlist_song_map WHERE position <= 3 ORDER BY position")
+    }
+}
 
 val MIGRATION_36_37 =
     object : Migration(36, 37) {
@@ -864,27 +914,54 @@ val MIGRATION_38_39 =
             if (!columnExists) {
                 db.execSQL("ALTER TABLE format ADD COLUMN perceptualLoudnessDb REAL DEFAULT NULL")
             }
-
-            // ── OTA resilience: ensure isAutoSync exists on playlist ──────
-            // Prevents crash-on-startup boot loop for users whose database
-            // was created by an older Room version that skipped the column.
-            if (!hasColumn(db, "playlist", "isAutoSync")) {
-                try {
-                    db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
-                    Timber.tag("MIGRATION_38_39").w("Added missing isAutoSync column to playlist")
-                } catch (e: Exception) {
-                    Timber.tag("MIGRATION_38_39").e(e, "Failed to add isAutoSync column")
-                }
-            }
-
-            // ── OTA resilience: ensure isPinned exists on playlist ────────
-            if (!hasColumn(db, "playlist", "isPinned")) {
-                try {
-                    db.execSQL("ALTER TABLE playlist ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0")
-                    Timber.tag("MIGRATION_38_39").w("Added missing isPinned column to playlist")
-                } catch (e: Exception) {
-                    Timber.tag("MIGRATION_38_39").e(e, "Failed to add isPinned column")
-                }
-            }
         }
     }
+
+val MIGRATION_39_40 =
+    object : Migration(39, 40) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `beat_info` (
+                    `songId` TEXT NOT NULL,
+                    `bpm` REAL NOT NULL,
+                    `firstBeatOffsetMs` INTEGER NOT NULL,
+                    `confidence` REAL NOT NULL,
+                    `analyzedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`songId`)
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+val MIGRATION_40_41 =
+    object : Migration(40, 41) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE beat_info ADD COLUMN mixInPointMs INTEGER DEFAULT NULL")
+            db.execSQL("ALTER TABLE beat_info ADD COLUMN mixOutPointMs INTEGER DEFAULT NULL")
+        }
+    }
+
+
+@DeleteTable.Entries(
+    DeleteTable(tableName = "brain_activity_log"),
+    DeleteTable(tableName = "play_event"),
+    DeleteTable(tableName = "taste_profile"),
+)
+class Migration41To42 : AutoMigrationSpec
+
+val MIGRATION_41_42 = object : Migration(41, 42) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Handled by AutoMigration
+    }
+}
+
+val MIGRATION_42_43 = object : Migration(42, 43) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `_new_playlist` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `browseId` TEXT, `createdAt` INTEGER, `lastUpdateTime` INTEGER, `isEditable` INTEGER NOT NULL DEFAULT true, `bookmarkedAt` INTEGER, `remoteSongCount` INTEGER, `playEndpointParams` TEXT, `thumbnailUrl` TEXT, `shuffleEndpointParams` TEXT, `radioEndpointParams` TEXT, `isLocal` INTEGER NOT NULL DEFAULT false, `isAutoSync` INTEGER NOT NULL DEFAULT false, `isPinned` INTEGER NOT NULL DEFAULT false, PRIMARY KEY(`id`))")
+        db.execSQL("INSERT INTO `_new_playlist` (`id`,`name`,`browseId`,`createdAt`,`lastUpdateTime`,`isEditable`,`bookmarkedAt`,`remoteSongCount`,`playEndpointParams`,`thumbnailUrl`,`shuffleEndpointParams`,`radioEndpointParams`,`isLocal`,`isAutoSync`,`isPinned`) SELECT `id`,`name`,`browseId`,`createdAt`,`lastUpdateTime`,`isEditable`,`bookmarkedAt`,`remoteSongCount`,`playEndpointParams`,`thumbnailUrl`,`shuffleEndpointParams`,`radioEndpointParams`,`isLocal`,`isAutoSync`,`isPinned` FROM `playlist`")
+        db.execSQL("DROP TABLE `playlist`")
+        db.execSQL("ALTER TABLE `_new_playlist` RENAME TO `playlist`")
+    }
+}
