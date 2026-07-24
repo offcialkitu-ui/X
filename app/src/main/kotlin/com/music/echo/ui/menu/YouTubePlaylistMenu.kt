@@ -52,6 +52,7 @@ import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.music.innertube.YouTube
 import com.music.innertube.models.PlaylistItem
@@ -94,6 +95,7 @@ fun YouTubePlaylistMenu(
     playlist: PlaylistItem,
     songs: List<SongItem> = emptyList(),
     coroutineScope: CoroutineScope,
+    navController: NavController,
     onDismiss: () -> Unit,
     selectAction: () -> Unit = {},
     canSelect: Boolean = false,
@@ -399,6 +401,28 @@ fun YouTubePlaylistMenu(
                                 )
                             )
                         }
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_instagram_new),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = androidx.compose.ui.graphics.Color(0xFFE4405F)
+                                    )
+                                },
+                                text = "Premium Share",
+                                onClick = {
+                                    onDismiss()
+                                    val encodedTitle = java.net.URLEncoder.encode(playlist.title, "UTF-8")
+                                    val encodedArtist = java.net.URLEncoder.encode("Playlist", "UTF-8")
+                                    val encodedThumb = java.net.URLEncoder.encode(playlist.thumbnail ?: "", "UTF-8")
+                                    val encodedShare = java.net.URLEncoder.encode(playlist.shareLink ?: "", "UTF-8")
+                                    
+                                    navController.navigate("story_share/${playlist.id}/$encodedTitle/$encodedArtist/false?thumbnailUrl=$encodedThumb&shareUrl=$encodedShare")
+                                }
+                            )
+                        )
                     }
                 },
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)

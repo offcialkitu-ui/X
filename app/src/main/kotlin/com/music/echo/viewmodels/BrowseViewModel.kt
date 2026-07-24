@@ -23,7 +23,7 @@ class BrowseViewModel @Inject constructor(
     val title = MutableStateFlow<String?>("")
  
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             browseId?.let {
                 YouTube.browse(browseId, null).onSuccess { result ->
                     

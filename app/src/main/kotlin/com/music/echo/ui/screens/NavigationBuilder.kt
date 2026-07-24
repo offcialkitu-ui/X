@@ -1,5 +1,4 @@
 
-
 package iad1tya.echo.music.ui.screens
 
 import android.app.Activity
@@ -14,6 +13,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -38,11 +38,7 @@ import iad1tya.echo.music.ui.screens.search.OnlineSearchResult
 import iad1tya.echo.music.ui.screens.search.SearchScreen
 import iad1tya.echo.music.ui.screens.settings.AboutScreen
 import iad1tya.echo.music.ui.screens.settings.AppearanceSettings
-import androidx.compose.runtime.LaunchedEffect
-import iad1tya.echo.music.ui.screens.settings.LiquidGlassSettings
-import iad1tya.echo.music.ui.screens.storyshare.StoryShareScreen
-import iad1tya.echo.music.ui.screens.storyshare.StoryShareViewModel
-import iad1tya.echo.music.ui.screens.storyshare.SongShareData
+import iad1tya.echo.music.ui.screens.settings.GlassEffectSettings
 import iad1tya.echo.music.ui.screens.settings.BackupAndRestore
 import iad1tya.echo.music.ui.screens.settings.ContentSettings
 import iad1tya.echo.music.ui.screens.settings.UptimeScreen
@@ -61,6 +57,9 @@ import iad1tya.echo.music.ui.screens.recognition.RecognitionScreen
 import iad1tya.echo.music.ui.screens.recognition.RecognitionHistoryScreen
 import iad1tya.echo.music.ui.screens.settings.UpdateSettings
 import iad1tya.echo.music.echomusic.updater.UpdateScreen
+import iad1tya.echo.music.ui.screens.storyshare.StoryShareScreen
+import iad1tya.echo.music.ui.screens.storyshare.StoryShareViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import iad1tya.echo.music.utils.rememberEnumPreference
 import iad1tya.echo.music.utils.rememberPreference
 import iad1tya.echo.music.echomusic.changelog.ChangelogScreen
@@ -143,6 +142,37 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("charts_screen") {
         ChartsScreen(navController)
+    }
+
+    composable(
+        route = "story_share/{songId}/{title}/{artist}/{explicit}?thumbnailUrl={thumbnailUrl}&shareUrl={shareUrl}",
+        arguments = listOf(
+            navArgument("songId") { type = NavType.StringType },
+            navArgument("title") { type = NavType.StringType },
+            navArgument("artist") { type = NavType.StringType },
+            navArgument("explicit") { type = NavType.BoolType },
+            navArgument("thumbnailUrl") { type = NavType.StringType; nullable = true },
+            navArgument("shareUrl") { type = NavType.StringType; nullable = true }
+        )
+    ) { backStackEntry ->
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val songId = backStackEntry.arguments?.getString("songId")!!
+        val title = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("title")!!, "UTF-8")
+        val artist = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("artist")!!, "UTF-8")
+        val explicit = backStackEntry.arguments?.getBoolean("explicit") ?: false
+        val thumbnailUrl = backStackEntry.arguments?.getString("thumbnailUrl")?.let { java.net.URLDecoder.decode(it, "UTF-8") } ?: ""
+        val shareUrl = backStackEntry.arguments?.getString("shareUrl")?.let { java.net.URLDecoder.decode(it, "UTF-8") } ?: ""
+
+        val vm: StoryShareViewModel = viewModel()
+        
+        LaunchedEffect(songId) {
+            vm.load(context, songId, title, artist, thumbnailUrl, explicit, shareUrl)
+        }
+        
+        StoryShareScreen(
+            vm = vm,
+            onResult = { navController.popBackStack() }
+        )
     }
 
     composable(
@@ -329,17 +359,6 @@ fun NavGraphBuilder.navigationBuilder(
         SettingsScreen(navController, scrollBehavior)
     }
 
-    composable(
-        route = "settings/echo_brain?highlightKey={highlightKey}",
-        arguments = listOf(navArgument("highlightKey") { type = NavType.StringType; nullable = true })
-    ) { backStackEntry ->
-        iad1tya.echo.music.ui.screens.settings.EchoBrainScreen(
-            navController, 
-            (activity as iad1tya.echo.music.MainActivity).echoBrainEngine, 
-            (activity as iad1tya.echo.music.MainActivity).echoBrainRepository,
-            highlightKey = backStackEntry.arguments?.getString("highlightKey")
-        )
-    }
 
     composable(
         route = "settings/update?highlightKey={highlightKey}",
@@ -367,7 +386,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable("settings/appearance/liquid_glass") {
-        LiquidGlassSettings(navController, scrollBehavior)
+        GlassEffectSettings(navController, scrollBehavior)
     }
 
     composable(
@@ -488,35 +507,5 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/commits") {
         CommitScreen(navController, scrollBehavior)
-    }
-
-    composable(
-        route = "story_share/{songId}/{title}/{artist}/{explicit}?thumbnailUrl={thumbnailUrl}&shareUrl={shareUrl}",
-        arguments = listOf(
-            navArgument("songId") { type = NavType.StringType },
-            navArgument("title") { type = NavType.StringType },
-            navArgument("artist") { type = NavType.StringType },
-            navArgument("explicit") { type = NavType.BoolType },
-            navArgument("thumbnailUrl") { type = NavType.StringType; nullable = true; defaultValue = "" },
-            navArgument("shareUrl") { type = NavType.StringType; nullable = true; defaultValue = "" }
-        )
-    ) { backStackEntry ->
-        val songId = backStackEntry.arguments?.getString("songId")!!
-        val title = backStackEntry.arguments?.getString("title")!!
-        val artist = backStackEntry.arguments?.getString("artist")!!
-        val explicit = backStackEntry.arguments?.getBoolean("explicit") ?: false
-        val thumbnailUrl = backStackEntry.arguments?.getString("thumbnailUrl") ?: ""
-        val shareUrl = backStackEntry.arguments?.getString("shareUrl") ?: ""
-
-        val viewModel: StoryShareViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-        val context = androidx.compose.ui.platform.LocalContext.current
-        
-        LaunchedEffect(songId) {
-            viewModel.load(context, songId, title, artist, thumbnailUrl, explicit, shareUrl)
-        }
-
-        StoryShareScreen(vm = viewModel) { dest ->
-            navController.popBackStack()
-        }
     }
 }

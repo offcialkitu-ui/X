@@ -17,9 +17,12 @@ import java.time.LocalDateTime
 @Entity(
     tableName = "song",
     indices = [
-        Index(
-            value = ["albumId"]
-        )
+        Index(value = ["albumId"]),
+        Index(value = ["inLibrary"]),
+        Index(value = ["liked"]),
+        Index(value = ["isDownloaded"]),
+        Index(value = ["isLocal"]),
+        Index(value = ["totalPlayTime"])
     ]
 )
 data class SongEntity(

@@ -197,7 +197,7 @@ private fun getMediaItems(
 private fun getTextColor(playerBackground: PlayerBackgroundStyle): Color {
     return when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH, PlayerBackgroundStyle.LIQUID_GLASS -> Color.White
+        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH, PlayerBackgroundStyle.LIQUID_GLASS, PlayerBackgroundStyle.COSMIC_DUST -> Color.White
     }
 }
 
@@ -590,7 +590,7 @@ private fun ThumbnailItem(
     val isCurrentItem = item.mediaId == currentMediaId
     
     val infiniteTransition = rememberInfiniteTransition(label = "ThumbnailRotation")
-    val rotation by infiniteTransition.animateFloat(
+    val rotation = infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = if (isPlaying && rotatingThumbnail && isCurrentItem) 360f else 0f,
         animationSpec = infiniteRepeatable(
@@ -682,7 +682,7 @@ private fun ThumbnailItem(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
                 .graphicsLayer {
-                    rotationZ = rotation
+                    rotationZ = rotation.value
                 }
                 .clip(
                     if (rotatingThumbnail) {
@@ -692,7 +692,7 @@ private fun ThumbnailItem(
                     }
                 )
                 .graphicsLayer {
-                    rotationZ = -rotation
+                    rotationZ = -rotation.value
                 }
         ) {
             if (hidePlayerThumbnail) {

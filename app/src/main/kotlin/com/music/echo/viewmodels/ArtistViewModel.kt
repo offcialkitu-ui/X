@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import iad1tya.echo.music.extensions.filterVideoSongs as filterVideoSongsLocal
 import iad1tya.echo.music.artistvideo.ArtistVideoCanvasProvider
@@ -73,7 +74,7 @@ class ArtistViewModel @Inject constructor(
 
     init {
         
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
                 .map {
                     Triple(
@@ -90,7 +91,7 @@ class ArtistViewModel @Inject constructor(
     }
 
     fun fetchArtistsFromYTM() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
             val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
             val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)

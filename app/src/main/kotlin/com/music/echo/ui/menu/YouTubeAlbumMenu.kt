@@ -338,6 +338,26 @@ fun YouTubeAlbumMenu(
                             }
                             context.startActivity(Intent.createChooser(intent, null))
                         }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_instagram_new),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = androidx.compose.ui.graphics.Color(0xFFE4405F)
+                            )
+                        },
+                        text = "Premium Share",
+                        onClick = {
+                            onDismiss()
+                            val encodedTitle = java.net.URLEncoder.encode(albumItem.title, "UTF-8")
+                            val encodedArtist = java.net.URLEncoder.encode(albumItem.artists?.joinToString(", ") { it.name } ?: "", "UTF-8")
+                            val encodedThumb = java.net.URLEncoder.encode(albumItem.thumbnail ?: "", "UTF-8")
+                            val encodedShare = java.net.URLEncoder.encode(albumItem.shareLink ?: "", "UTF-8")
+                            
+                            navController.navigate("story_share/${albumItem.id}/$encodedTitle/$encodedArtist/false?thumbnailUrl=$encodedThumb&shareUrl=$encodedShare")
+                        }
                     )
                 ),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),

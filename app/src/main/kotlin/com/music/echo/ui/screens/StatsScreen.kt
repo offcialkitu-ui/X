@@ -334,6 +334,7 @@ fun StatsScreen(
                                             ArtistMenu(
                                                 originalArtist = artist,
                                                 coroutineScope = coroutineScope,
+                                                navController = navController,
                                                 onDismiss = menuState::dismiss,
                                             )
                                         }

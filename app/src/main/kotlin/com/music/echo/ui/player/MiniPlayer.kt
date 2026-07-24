@@ -1198,6 +1198,12 @@ private fun MiniPlayerBackgroundLayer(
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
             }
         }
+        PlayerBackgroundStyle.COSMIC_DUST -> {
+            iad1tya.echo.music.ui.component.CosmicDustAnimation(
+                modifier = Modifier.fillMaxSize(),
+                particleCount = 40
+            )
+        }
         else -> {}
     }
 }

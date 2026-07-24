@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -218,7 +219,7 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             mostPlayedArtists.collect { artists ->
                 artists
                     .map { it.artist }
@@ -236,7 +237,7 @@ constructor(
                     }
             }
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             mostPlayedAlbums.collect { albums ->
                 albums
                     .filter {

@@ -39,6 +39,7 @@ fun LibraryArtistListItem(
                     ArtistMenu(
                         originalArtist = artist,
                         coroutineScope = coroutineScope,
+                        navController = navController,
                         onDismiss = menuState::dismiss
                     )
                 }
@@ -79,6 +80,7 @@ fun LibraryArtistGridItem(
                     ArtistMenu(
                         originalArtist = artist,
                         coroutineScope = coroutineScope,
+                        navController = navController,
                         onDismiss = menuState::dismiss
                     )
                 }
@@ -174,6 +176,7 @@ fun LibraryPlaylistListItem(
                         PlaylistMenu(
                             playlist = playlist,
                             coroutineScope = coroutineScope,
+                            navController = navController,
                             onDismiss = menuState::dismiss
                         )
                     } else {
@@ -200,6 +203,7 @@ fun LibraryPlaylistListItem(
                                     isEditable = false
                                 ),
                                 coroutineScope = coroutineScope,
+                                navController = navController,
                                 onDismiss = menuState::dismiss
                             )
                         }
@@ -249,6 +253,7 @@ fun LibraryPlaylistGridItem(
                         PlaylistMenu(
                             playlist = playlist,
                             coroutineScope = coroutineScope,
+                            navController = navController,
                             onDismiss = menuState::dismiss
                         )
                     } else {
@@ -275,6 +280,7 @@ fun LibraryPlaylistGridItem(
                                     isEditable = false
                                 ),
                                 coroutineScope = coroutineScope,
+                                navController = navController,
                                 onDismiss = menuState::dismiss
                             )
                         }

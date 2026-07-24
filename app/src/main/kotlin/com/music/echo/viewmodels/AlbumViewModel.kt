@@ -39,7 +39,7 @@ constructor(
     var descriptionRuns = MutableStateFlow<List<com.music.innertube.models.Run>?>(null)
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val album = database.album(albumId).first()
             if (album?.description != null) {
                 description.value = album.description

@@ -411,6 +411,7 @@ fun LibraryMixScreen(
                                                     PlaylistMenu(
                                                         playlist = item,
                                                         coroutineScope = coroutineScope,
+                                                        navController = navController,
                                                         onDismiss = menuState::dismiss,
                                                     )
                                                 }
@@ -435,6 +436,7 @@ fun LibraryMixScreen(
                                                     PlaylistMenu(
                                                         playlist = item,
                                                         coroutineScope = coroutineScope,
+                                                        navController = navController,
                                                         onDismiss = menuState::dismiss,
                                                     )
                                                 }
@@ -454,6 +456,7 @@ fun LibraryMixScreen(
                                                     ArtistMenu(
                                                         originalArtist = item,
                                                         coroutineScope = coroutineScope,
+                                                        navController = navController,
                                                         onDismiss = menuState::dismiss,
                                                     )
                                                 }
@@ -478,6 +481,7 @@ fun LibraryMixScreen(
                                                     ArtistMenu(
                                                         originalArtist = item,
                                                         coroutineScope = coroutineScope,
+                                                        navController = navController,
                                                         onDismiss = menuState::dismiss,
                                                     )
                                                 }
@@ -670,6 +674,7 @@ fun LibraryMixScreen(
                                                     PlaylistMenu(
                                                         playlist = item,
                                                         coroutineScope = coroutineScope,
+                                                        navController = navController,
                                                         onDismiss = menuState::dismiss,
                                                     )
                                                 }
@@ -696,6 +701,7 @@ fun LibraryMixScreen(
                                                     ArtistMenu(
                                                         originalArtist = item,
                                                         coroutineScope = coroutineScope,
+                                                        navController = navController,
                                                         onDismiss = menuState::dismiss,
                                                     )
                                                 }

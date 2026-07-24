@@ -215,6 +215,7 @@ fun OnlineSearchResult(
                     is ArtistItem ->
                         YouTubeArtistMenu(
                             artist = item,
+                            navController = navController,
                             onDismiss = menuState::dismiss,
                         )
 
@@ -222,6 +223,7 @@ fun OnlineSearchResult(
                         YouTubePlaylistMenu(
                             playlist = item,
                             coroutineScope = coroutineScope,
+                            navController = navController,
                             onDismiss = menuState::dismiss,
                         )
                 }

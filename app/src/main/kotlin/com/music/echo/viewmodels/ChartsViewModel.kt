@@ -24,7 +24,7 @@ class ChartsViewModel @Inject constructor() : ViewModel() {
     val error = _error.asStateFlow()
 
     fun loadCharts() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             _error.value = null
             

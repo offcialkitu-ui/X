@@ -398,6 +398,7 @@ fun OnlinePlaylistScreen(
                                                             is PlaylistItem -> YouTubePlaylistMenu(
                                                                 playlist = item,
                                                                 coroutineScope = coroutineScope,
+                                                                navController = navController,
                                                                 onDismiss = menuState::dismiss
                                                             )
                                                             is SongItem -> YouTubeSongMenu(
@@ -412,6 +413,7 @@ fun OnlinePlaylistScreen(
                                                             )
                                                             is ArtistItem -> YouTubeArtistMenu(
                                                                 artist = item,
+                                                                navController = navController,
                                                                 onDismiss = menuState::dismiss
                                                             )
                                                         }
@@ -987,6 +989,7 @@ private fun OnlinePlaylistHeader(
                                 playlist = playlist,
                                 songs = songs,
                                 coroutineScope = coroutineScope,
+                                navController = navController,
                                 onDismiss = menuState::dismiss,
                             )
                         }

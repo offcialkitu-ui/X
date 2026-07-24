@@ -69,6 +69,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -333,7 +334,7 @@ fun BottomSheetPlayer(
 
     val shouldUseDarkButtonColors = remember(playerBackground, useDarkTheme) {
         when (playerBackground) {
-            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH, PlayerBackgroundStyle.LIQUID_GLASS -> true
+            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH, PlayerBackgroundStyle.LIQUID_GLASS, PlayerBackgroundStyle.COSMIC_DUST -> true
             PlayerBackgroundStyle.DEFAULT -> useDarkTheme
         }
     }
@@ -885,7 +886,7 @@ fun BottomSheetPlayer(
 
     val bottomSheetBackgroundColor = when {
         isLocalMedia -> Color.Black
-        playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIQUID_GLASS) ->
+        playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIQUID_GLASS, PlayerBackgroundStyle.COSMIC_DUST) ->
             MaterialTheme.colorScheme.surfaceContainer
         playerBackground == PlayerBackgroundStyle.LIVE_MESH -> Color.Black
         else ->
@@ -1360,6 +1361,11 @@ fun BottomSheetPlayer(
                                 }
                             }
                         }
+                    }
+                    PlayerBackgroundStyle.COSMIC_DUST -> {
+                        iad1tya.echo.music.ui.component.CosmicDustAnimation(
+                            modifier = Modifier.fillMaxSize().alpha(backgroundAlpha)
+                        )
                     }
                     PlayerBackgroundStyle.DEFAULT -> {
                         

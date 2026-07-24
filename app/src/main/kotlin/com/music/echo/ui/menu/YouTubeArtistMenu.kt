@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.music.innertube.models.ArtistItem
 import iad1tya.echo.music.LocalDatabase
 import iad1tya.echo.music.LocalListenTogetherManager
@@ -49,6 +50,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 @Composable
 fun YouTubeArtistMenu(
     artist: ArtistItem,
+    navController: NavController,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -150,6 +152,28 @@ fun YouTubeArtistMenu(
                                 }
                                 context.startActivity(Intent.createChooser(intent, null))
                                 onDismiss()
+                            }
+                        )
+                    )
+                    add(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_instagram_new),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = androidx.compose.ui.graphics.Color(0xFFE4405F)
+                                )
+                            },
+                            text = "Premium Share",
+                            onClick = {
+                                onDismiss()
+                                val encodedTitle = java.net.URLEncoder.encode(artist.title, "UTF-8")
+                                val encodedArtist = java.net.URLEncoder.encode("Artist", "UTF-8")
+                                val encodedThumb = java.net.URLEncoder.encode(artist.thumbnail ?: "", "UTF-8")
+                                val encodedShare = java.net.URLEncoder.encode(artist.shareLink, "UTF-8")
+                                
+                                navController.navigate("story_share/${artist.id}/$encodedTitle/$encodedArtist/false?thumbnailUrl=$encodedThumb&shareUrl=$encodedShare")
                             }
                         )
                     )

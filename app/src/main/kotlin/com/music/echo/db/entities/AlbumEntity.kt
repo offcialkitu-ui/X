@@ -13,7 +13,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 @Immutable
-@Entity(tableName = "album")
+@Entity(
+    tableName = "album",
+    indices = [
+        Index(value = ["bookmarkedAt"]),
+        Index(value = ["inLibrary"])
+    ]
+)
 data class AlbumEntity(
     @PrimaryKey val id: String,
     val playlistId: String? = null,

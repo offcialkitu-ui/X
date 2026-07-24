@@ -99,6 +99,7 @@ fun AccountScreen(
                                         YouTubePlaylistMenu(
                                             playlist = item,
                                             coroutineScope = coroutineScope,
+                                            navController = navController,
                                             onDismiss = menuState::dismiss,
                                         )
                                     }
@@ -170,6 +171,7 @@ fun AccountScreen(
                                     menuState.show {
                                         YouTubeArtistMenu(
                                             artist = item,
+                                            navController = navController,
                                             onDismiss = menuState::dismiss
                                         )
                                     }

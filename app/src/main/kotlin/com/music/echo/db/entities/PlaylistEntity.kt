@@ -14,7 +14,13 @@ import org.apache.commons.lang3.RandomStringUtils
 import java.time.LocalDateTime
 
 @Immutable
-@Entity(tableName = "playlist")
+@Entity(
+    tableName = "playlist",
+    indices = [
+        Index(value = ["bookmarkedAt"]),
+        Index(value = ["browseId"])
+    ]
+)
 data class PlaylistEntity(
     @PrimaryKey val id: String = generatePlaylistId(),
     val name: String,

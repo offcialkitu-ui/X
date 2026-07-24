@@ -1,11 +1,13 @@
 
-
 package iad1tya.echo.music
 import iad1tya.echo.music.R
 import iad1tya.echo.music.BuildConfig
 import iad1tya.echo.music.ui.screens.settings.RingtoneViewModel
 import iad1tya.echo.music.ui.component.RingtoneTrimmerDialog
 import iad1tya.echo.music.ui.component.RingtoneProgressDialog
+import iad1tya.echo.music.ui.component.AppFloatingNavBar
+import iad1tya.echo.music.ui.component.floatingtabbar.rememberFloatingTabBarScrollConnection
+import iad1tya.echo.music.constants.UseFloatingNavBarKey
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
@@ -73,7 +75,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
@@ -113,6 +114,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -149,9 +156,6 @@ import iad1tya.echo.music.constants.DarkModeKey
 import iad1tya.echo.music.constants.DefaultOpenTabKey
 import iad1tya.echo.music.constants.DisableScreenshotKey
 import iad1tya.echo.music.constants.DynamicThemeKey
-import iad1tya.echo.music.constants.FloatingNavBarKey
-import iad1tya.echo.music.constants.SlimNavBarKey
-import iad1tya.echo.music.ui.component.AppNavigationBar
 import iad1tya.echo.music.constants.EnableHighRefreshRateKey
 import iad1tya.echo.music.constants.FloatingToolbarBottomPadding
 import iad1tya.echo.music.constants.FloatingToolbarHorizontalPadding
@@ -176,6 +180,8 @@ import iad1tya.echo.music.constants.SYSTEM_DEFAULT
 import iad1tya.echo.music.constants.SelectedThemeColorKey
 import iad1tya.echo.music.constants.StopMusicOnTaskClearKey
 import iad1tya.echo.music.constants.UseNewMiniPlayerDesignKey
+import iad1tya.echo.music.constants.*
+import iad1tya.echo.music.ui.component.shimmer.getShimmerTheme
 import iad1tya.echo.music.db.MusicDatabase
 import iad1tya.echo.music.db.entities.SearchHistory
 import iad1tya.echo.music.extensions.toEnum
@@ -183,18 +189,11 @@ import iad1tya.echo.music.models.toMediaMetadata
 import iad1tya.echo.music.playback.DownloadUtil
 import iad1tya.echo.music.playback.MusicService
 import iad1tya.echo.music.playback.MusicService.MusicBinder
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import iad1tya.echo.music.playback.PlayerConnection
 import iad1tya.echo.music.playback.queues.YouTubeQueue
-import iad1tya.echo.music.ui.component.AppNavigationRail
-import iad1tya.echo.music.ui.component.BottomSheetMenu
-import iad1tya.echo.music.ui.component.BottomSheetPage
-import iad1tya.echo.music.ui.component.FloatingNavigationToolbar
-import iad1tya.echo.music.ui.component.LocalBottomSheetPageState
-import iad1tya.echo.music.ui.component.LocalMenuState
-import iad1tya.echo.music.ui.component.rememberBottomSheetState
-import iad1tya.echo.music.ui.component.shimmer.getShimmerTheme
+import iad1tya.echo.music.ui.component.*
+import iad1tya.echo.music.ui.component.backdrop.backdrops.rememberLayerBackdrop
+import iad1tya.echo.music.ui.component.backdrop.backdrops.layerBackdrop
 import iad1tya.echo.music.ui.menu.YouTubeSongMenu
 import iad1tya.echo.music.ui.player.BottomSheetPlayer
 import iad1tya.echo.music.ui.screens.Screens
@@ -207,6 +206,8 @@ import iad1tya.echo.music.ui.theme.ColorSaver
 import iad1tya.echo.music.ui.theme.DefaultThemeColor
 import iad1tya.echo.music.ui.theme.echomusicTheme
 import iad1tya.echo.music.ui.theme.extractThemeColor
+import iad1tya.echo.music.ui.theme.LocalGlassmorphismMode
+import iad1tya.echo.music.ui.theme.LocalPurpleTheme
 import iad1tya.echo.music.ui.utils.appBarScrollBehavior
 import iad1tya.echo.music.ui.utils.resetHeightOffset
 import iad1tya.echo.music.utils.SyncUtils
@@ -237,6 +238,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.drawBehind
 
 @Composable
 private fun PartyMeshGlow() {
@@ -410,6 +412,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var isPlaying = false
+
+    override fun startForegroundService(service: Intent): android.content.ComponentName? {
+        return try {
+            super.startForegroundService(service)
+        } catch (e: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is android.app.ForegroundServiceStartNotAllowedException) {
+                Timber.e(e, "Suppressed ForegroundServiceStartNotAllowedException in MainActivity")
+                null
+            } else {
+                throw e
+            }
+        }
+    }
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -444,7 +461,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
         }
-
+        
         lifecycleScope.launch {
             dataStore.data
                 .map { it[iad1tya.echo.music.constants.EchoBrainEnabledKey] ?: false }
@@ -482,7 +499,7 @@ class MainActivity : ComponentActivity() {
         val (batteryProMode) = rememberPreference(iad1tya.echo.music.constants.BatteryProModeKey, defaultValue = false)
         val (sleepTimer) = rememberPreference(iad1tya.echo.music.constants.SleepTimerKey, defaultValue = 0)
         val context = LocalContext.current
-        
+
         LaunchedEffect(sleepTimer) {
             if (sleepTimer > 0) {
                 delay(sleepTimer * 60 * 1000L)
@@ -492,14 +509,11 @@ class MainActivity : ComponentActivity() {
         }
 
         LaunchedEffect(Unit) {
-            // ── Startup OTA update check ─────────────────────────────────
-            // Runs by default (getAutoUpdateCheckSetting now defaults to true)
-            // and is rate-limited internally via monotonic elapsed-realtime
-            // so clock skew cannot suppress or force extra checks.
-            
-            delay(2000L) // Small delay to let the UI settle first
-            
+            val prefs = context.dataStore.data.first()
+
             if (getAutoUpdateCheckSetting(context)) {
+                
+                delay(2000L)
                 checkForUpdate(
                     context = context,
                     onSuccess = { latestVersion, isAvailable, _, _, _, _, _, _ ->
@@ -514,7 +528,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onError = {
                         Log.e("UpdateCheck", "Startup check failed")
-                        // Silently ignore — next check will happen on next app open or via PeriodicUpdateWorker
+                        
                     }
                 )
             }
@@ -525,17 +539,12 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val layoutParams = window.attributes
                 if (enableHighRefreshRate) {
-                    // Find the highest refresh rate mode up to 144Hz
-                    val modes = window.windowManager.defaultDisplay.supportedModes
-                    val highRefreshModes = listOf(144f, 120f, 90f)
-                    val bestMode = highRefreshModes.firstNotNullOfOrNull { targetHz ->
-                        modes.firstOrNull { kotlin.math.abs(it.refreshRate - targetHz) < 1f }
-                    } ?: modes.maxByOrNull { it.refreshRate }
-                    layoutParams.preferredDisplayModeId = bestMode?.modeId ?: 0
+                    layoutParams.preferredDisplayModeId = 0
                 } else {
                     val modes = window.windowManager.defaultDisplay.supportedModes
                     val mode60 = modes.firstOrNull { kotlin.math.abs(it.refreshRate - 60f) < 1f }
                         ?: modes.minByOrNull { kotlin.math.abs(it.refreshRate - 60f) }
+
                     if (mode60 != null) {
                         layoutParams.preferredDisplayModeId = mode60.modeId
                     }
@@ -544,7 +553,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 val params = window.attributes
                 if (enableHighRefreshRate) {
-                    params.preferredRefreshRate = 144f
+                    params.preferredRefreshRate = 0f
                 } else {
                     params.preferredRefreshRate = 60f
                 }
@@ -613,6 +622,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val (enableHaptics) = rememberPreference(iad1tya.echo.music.constants.EnableHapticsKey, defaultValue = false)
+        val view = LocalView.current
+        val lastScrollHapticTime = remember { object { var value = 0L } }
+
         echomusicTheme(
             darkTheme = useDarkTheme,
             pureBlack = pureBlack,
@@ -622,22 +635,22 @@ class MainActivity : ComponentActivity() {
             batteryProMode = batteryProMode,
             themeColor = themeColor,
         ) {
-            val isPurple = iad1tya.echo.music.ui.theme.LocalPurpleTheme.current
-            val isGlass = iad1tya.echo.music.ui.theme.LocalGlassmorphismMode.current
+            val isPurple = LocalPurpleTheme.current
+            val isGlassMode = LocalGlassmorphismMode.current
             
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         when {
-                            isGlass || isPurple -> Color(0xFF0A0A0A)
+                            isGlassMode || isPurple -> Color(0xFF0A0A0A)
                             batteryProMode -> Color.Black
                             pureBlack -> Color.Black
                             else -> MaterialTheme.colorScheme.surface
                         }
                     )
                     .then(
-                        if (isPurple || isGlass) {
+                        if (isPurple || isGlassMode) {
                             Modifier.drawBehind {
                                 val color = if (isPurple) Color(0xFF8B5CF6) else themeColor
                                 drawCircle(
@@ -657,6 +670,26 @@ class MainActivity : ComponentActivity() {
                             }
                         } else Modifier
                     )
+                    .pointerInput(enableHaptics) {
+                        if (enableHaptics) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                    val isClick = event.changes.any { it.changedToDown() }
+                                    val isScroll = event.changes.any { it.positionChange() != Offset.Zero && it.pressed }
+                                    if (isClick) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                                    } else if (isScroll) {
+                                        val currentTime = System.currentTimeMillis()
+                                        if (currentTime - lastScrollHapticTime.value > 100) {
+                                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                            lastScrollHapticTime.value = currentTime
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
             ) {
                 val focusManager = LocalFocusManager.current
                 val density = LocalDensity.current
@@ -673,8 +706,7 @@ class MainActivity : ComponentActivity() {
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
                 val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
-                val (floatingNavBar) = rememberPreference(FloatingNavBarKey, defaultValue = true)
-                val (slimNavBar) = rememberPreference(SlimNavBarKey, defaultValue = false)
+                val (useFloatingNavBar) = rememberPreference(UseFloatingNavBarKey, defaultValue = false)
 
                 val navigationItems = remember(listenTogetherInTopBar) { 
                     if (listenTogetherInTopBar) {
@@ -758,12 +790,18 @@ class MainActivity : ComponentActivity() {
                     label = "navBarHeight",
                 )
 
+                val floatingNavBarScrollConnection = rememberFloatingTabBarScrollConnection()
+
                 val playerBottomSheetState = rememberBottomSheetState(
                     dismissedBound = 0.dp,
-                    collapsedBound = bottomInset +
-                        (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
-                        (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
-                        MiniPlayerHeight,
+                    collapsedBound = if (useFloatingNavBar && !showRail && shouldShowNavigationBar) {
+                        0.dp
+                    } else {
+                        bottomInset +
+                            (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
+                            (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
+                            MiniPlayerHeight
+                    },
                     expandedBound = maxHeight,
                 )
 
@@ -788,6 +826,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
+                val playerMediaMetadata = playerConnection?.player?.currentMediaItem?.mediaMetadata
+                val hasDockedPlayerAccessory =
+                    useFloatingNavBar && playerMediaMetadata != null && !showRail && shouldShowNavigationBar
 
                 val playerAwareWindowInsets = remember(
                     bottomInset,
@@ -961,7 +1003,48 @@ class MainActivity : ComponentActivity() {
                     !(pauseListenHistory && eventCount == 0)
                 }
 
+                val (liquidGlassGlobalEnabled) = rememberPreference(LiquidGlassGlobalEnabledKey, defaultValue = false)
+                val (liquidGlassVibrancy) = rememberPreference(LiquidGlassVibrancyKey, defaultValue = 1f)
+                val (liquidGlassBlurRadius) = rememberPreference(LiquidGlassBlurRadiusKey, defaultValue = 8f)
+                val (liquidGlassLensHeight) = rememberPreference(LiquidGlassLensHeightKey, defaultValue = 0.5f)
+                val (liquidGlassLensAmount) = rememberPreference(LiquidGlassLensAmountKey, defaultValue = 0.5f)
+                val (liquidGlassChromaticAberration) = rememberPreference(LiquidGlassChromaticAberrationKey, defaultValue = true)
+                val (liquidGlassDepthEffect) = rememberPreference(LiquidGlassDepthEffectKey, defaultValue = true)
+                val (liquidGlassSurfaceTintColorInt) = rememberPreference(LiquidGlassSurfaceTintColorKey, defaultValue = 0)
+                val (liquidGlassSurfaceOpacity) = rememberPreference(LiquidGlassSurfaceOpacityKey, defaultValue = 0.4f)
+                val (liquidGlassTextColorInt) = rememberPreference(LiquidGlassTextColorKey, defaultValue = Color.White.toArgb())
+                val (liquidGlassPlayerEnabled) = rememberPreference(LiquidGlassPlayerEnabledKey, defaultValue = true)
+                val (liquidGlassMiniPlayerEnabled) = rememberPreference(LiquidGlassMiniPlayerEnabledKey, defaultValue = true)
+                val (liquidGlassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+                val glassEffectConfig = remember(
+                    liquidGlassGlobalEnabled, useFloatingNavBar, liquidGlassVibrancy, liquidGlassBlurRadius,
+                    liquidGlassLensHeight, liquidGlassLensAmount, liquidGlassChromaticAberration,
+                    liquidGlassDepthEffect, liquidGlassSurfaceTintColorInt,
+                    liquidGlassSurfaceOpacity, liquidGlassTextColorInt, liquidGlassPlayerEnabled,
+                    liquidGlassMiniPlayerEnabled, liquidGlassNavBarEnabled,
+                ) {
+                    iad1tya.echo.music.ui.component.GlassEffectConfig(
+                        globalEnabled = liquidGlassGlobalEnabled && useFloatingNavBar,
+                        vibrancy = liquidGlassVibrancy,
+                        blurRadius = liquidGlassBlurRadius,
+                        lensHeight = liquidGlassLensHeight,
+                        lensAmount = liquidGlassLensAmount,
+                        chromaticAberration = liquidGlassChromaticAberration,
+                        depthEffect = liquidGlassDepthEffect,
+                        surfaceTintColor = if (liquidGlassSurfaceTintColorInt == 0) Color.Unspecified else Color(liquidGlassSurfaceTintColorInt),
+                        surfaceOpacity = liquidGlassSurfaceOpacity,
+                        textColor = Color(liquidGlassTextColorInt),
+                        playerEnabled = liquidGlassPlayerEnabled,
+                        miniPlayerEnabled = liquidGlassMiniPlayerEnabled,
+                        navBarEnabled = liquidGlassNavBarEnabled,
+                    )
+                }
+                
                 val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+                val appBackdrop = rememberLayerBackdrop {
+                    drawRect(baseBg)
+                    drawContent()
+                }
 
                 val ringtoneViewModel: RingtoneViewModel = viewModel()
                 val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
@@ -976,6 +1059,8 @@ class MainActivity : ComponentActivity() {
                     LocalShimmerTheme provides getShimmerTheme(),
                     LocalSyncUtils provides syncUtils,
                     LocalListenTogetherManager provides listenTogetherManager,
+                    iad1tya.echo.music.ui.component.LocalGlassEffectConfig provides glassEffectConfig,
+                    iad1tya.echo.music.ui.component.LocalAppBackdrop provides appBackdrop,
                 ) {
 
                     Scaffold(
@@ -1107,13 +1192,40 @@ class MainActivity : ComponentActivity() {
                                         slideOffset + hideOffset
                                     }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .height(navSlideDistance)
-                                            .offset(y = navOffsetY),
-                                    ) {
-                                        if (floatingNavBar) {
+                                    if (useFloatingNavBar) {
+                                        AppFloatingNavBar(
+                                            navigationItems = navigationItems,
+                                            currentRoute = currentRoute,
+                                            onItemClick = onNavItemClick,
+                                            scrollConnection = floatingNavBarScrollConnection,
+                                            pureBlack = pureBlack,
+                                            showPlayerAccessory = hasDockedPlayerAccessory,
+                                            onAccessoryClick = { playerBottomSheetState.expandSoft() },
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .padding(horizontal = 16.dp)
+                                                .padding(bottom = bottomInset + 8.dp)
+                                                .graphicsLayer {
+                                                    val hiddenOffset =
+                                                        size.height + (bottomInset + 8.dp).toPx()
+                                                    val navBarHeightPx = navigationBarHeight.toPx()
+                                                    translationY = if (navBarHeightPx == 0f) {
+                                                        hiddenOffset
+                                                    } else {
+                                                        val progress = playerBottomSheetState.progress.coerceIn(0f, 1f)
+                                                        val slideOffset = hiddenOffset * progress
+                                                        val hideOffset = hiddenOffset * (1 - navBarHeightPx / NavigationBarHeight.toPx())
+                                                        slideOffset + hideOffset
+                                                    }
+                                                }
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .height(navSlideDistance)
+                                                .offset(y = navOffsetY),
+                                        ) {
                                             FloatingNavigationToolbar(
                                                 items = navigationItems,
                                                 pureBlack = pureBlack,
@@ -1142,34 +1254,21 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     .height(NavigationBarHeight)
                                             )
-                                        } else {
-                                            AppNavigationBar(
-                                                navigationItems = navigationItems,
-                                                currentRoute = currentRoute,
-                                                onItemClick = onNavItemClick,
-                                                pureBlack = pureBlack,
-                                                slimNav = slimNavBar,
-                                                onSearchLongClick = onMusicRecognitionClick,
-                                                modifier = Modifier
-                                                    .align(Alignment.BottomCenter)
-                                                    .fillMaxWidth()
-                                                    .height(NavigationBarHeight + bottomInset)
-                                            )
                                         }
-                                    }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .align(Alignment.BottomCenter)
-                                            .height(bottomInsetDp)
-                                            
-                                            .graphicsLayer {
-                                                val progress = playerBottomSheetState.progress
-                                                alpha = if (progress > 0f || (useNewMiniPlayerDesign && !shouldShowNavigationBar)) 0f else 1f
-                                            }
-                                            .background(if (partyMode) Color.Transparent else baseBg)
-                                    )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .align(Alignment.BottomCenter)
+                                                .height(bottomInsetDp)
+                                                
+                                                .graphicsLayer {
+                                                    val progress = playerBottomSheetState.progress
+                                                    alpha = if (progress > 0f || (useNewMiniPlayerDesign && !shouldShowNavigationBar)) 0f else 1f
+                                                }
+                                                .background(if (partyMode) Color.Transparent else baseBg)
+                                        )
+                                    }
                                 }
                             } else {
                                 if (currentRoute != "update" && currentRoute != "listen_together/chat" && currentRoute != "ambient_mode" && currentRoute != "uptime" && currentRoute?.startsWith("settings") != true) {
@@ -1197,6 +1296,13 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                            .then(
+                                if (useFloatingNavBar) {
+                                    Modifier.nestedScroll(floatingNavBarScrollConnection)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     ) {
                         Row(Modifier.fillMaxSize()) {
                             val onRailItemClick: (Screens, Boolean) -> Unit = remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
@@ -1304,7 +1410,9 @@ class MainActivity : ComponentActivity() {
                                         else
                                             slideOutHorizontally { it / 8 } + fadeOut(tween(200))
                                     },
-                                    modifier = Modifier.nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                                    modifier = Modifier
+                                        .layerBackdrop(appBackdrop)
+                                        .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
                                 ) {
                                     navigationBuilder(
                                         navController = navController,
@@ -1355,7 +1463,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
                     RingtoneTrimmerDialog(
                         isVisible = ringtoneUiState.showTrimmer,
                         songId = ringtoneUiState.targetSongId,
@@ -1567,3 +1674,5 @@ val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No Downl
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
 val LocalListenTogetherManager = staticCompositionLocalOf<iad1tya.echo.music.listentogether.ListenTogetherManager?> { null }
 val LocalIsPlayerExpanded = compositionLocalOf { false }
+val LocalGlassEffectConfig = staticCompositionLocalOf { iad1tya.echo.music.ui.component.GlassEffectConfig() }
+val LocalAppBackdrop = staticCompositionLocalOf<iad1tya.echo.music.ui.component.backdrop.Backdrop> { error("No AppBackdrop provided") }

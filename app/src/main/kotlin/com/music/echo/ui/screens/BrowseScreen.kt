@@ -102,6 +102,7 @@ package iad1tya.echo.music.ui.screens
                                              YouTubePlaylistMenu(
                                                  playlist = item,
                                                  coroutineScope = coroutineScope,
+                                                 navController = navController,
                                                  onDismiss = menuState::dismiss
                                              )
                                          }
@@ -109,6 +110,7 @@ package iad1tya.echo.music.ui.screens
                                          is ArtistItem -> {
                                              YouTubeArtistMenu(
                                                  artist = item,
+                                                 navController = navController,
                                                  onDismiss = menuState::dismiss
                                              )
                                          }

@@ -731,6 +731,7 @@ fun HomeScreen(
                                 ArtistMenu(
                                     originalArtist = it,
                                     coroutineScope = scope,
+                                    navController = navController,
                                     onDismiss = menuState::dismiss,
                                 )
                             }
@@ -784,12 +785,14 @@ fun HomeScreen(
 
                                 is ArtistItem -> YouTubeArtistMenu(
                                     artist = item,
+                                    navController = navController,
                                     onDismiss = menuState::dismiss
                                 )
 
                                 is PlaylistItem -> YouTubePlaylistMenu(
                                     playlist = item,
                                     coroutineScope = scope,
+                                    navController = navController,
                                     onDismiss = menuState::dismiss
                                 )
                             }
@@ -1110,11 +1113,13 @@ fun HomeScreen(
                                                                                             )
                                                                                             is ArtistItem -> YouTubeArtistMenu(
                                                                                                 artist = item,
+                                                                                                navController = navController,
                                                                                                 onDismiss = menuState::dismiss
                                                                                             )
                                                                                             is PlaylistItem -> YouTubePlaylistMenu(
                                                                                                 playlist = item,
                                                                                                 coroutineScope = scope,
+                                                                                                navController = navController,
                                                                                                 onDismiss = menuState::dismiss
                                                                                             )
                                                                                         }

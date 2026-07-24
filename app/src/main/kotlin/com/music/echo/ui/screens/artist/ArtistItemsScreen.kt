@@ -152,6 +152,7 @@ fun ArtistItemsScreen(
                                         is ArtistItem ->
                                             YouTubeArtistMenu(
                                                 artist = item,
+                                                navController = navController,
                                                 onDismiss = menuState::dismiss,
                                             )
 
@@ -159,6 +160,7 @@ fun ArtistItemsScreen(
                                             YouTubePlaylistMenu(
                                                 playlist = item,
                                                 coroutineScope = coroutineScope,
+                                                navController = navController,
                                                 onDismiss = menuState::dismiss,
                                             )
                                     }
@@ -260,12 +262,14 @@ fun ArtistItemsScreen(
 
                                         is ArtistItem -> YouTubeArtistMenu(
                                             artist = item,
+                                            navController = navController,
                                             onDismiss = menuState::dismiss
                                         )
 
                                         is PlaylistItem -> YouTubePlaylistMenu(
                                             playlist = item,
                                             coroutineScope = coroutineScope,
+                                            navController = navController,
                                             onDismiss = menuState::dismiss
                                         )
                                     }

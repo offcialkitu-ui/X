@@ -288,7 +288,7 @@ class HomeViewModel @Inject constructor(
         dailyDiscover.value = items.toList().distinctBy { it.recommendation.id }.shuffled()
     }
 
-    private suspend fun getQuickPicks() {
+    private suspend fun getQuickPicks() = withContext(Dispatchers.IO) {
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         when (quickPicksEnum.first()) {
             QuickPicks.QUICK_PICKS -> {
@@ -439,7 +439,7 @@ class HomeViewModel @Inject constructor(
     }
 
     
-    private suspend fun loadLocalDataPhase() {
+    private suspend fun loadLocalDataPhase() = withContext(Dispatchers.IO) {
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
 
         getQuickPicks()

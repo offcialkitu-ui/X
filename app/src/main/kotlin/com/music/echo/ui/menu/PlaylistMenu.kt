@@ -46,6 +46,7 @@ import iad1tya.echo.music.constants.InnerTubeCookieKey
 import iad1tya.echo.music.utils.rememberPreference
 import com.music.innertube.utils.parseCookieString
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
@@ -81,6 +82,7 @@ import java.time.LocalDateTime
 fun PlaylistMenu(
     playlist: Playlist,
     coroutineScope: CoroutineScope,
+    navController: NavController,
     onDismiss: () -> Unit,
     autoPlaylist: Boolean? = false,
     downloadPlaylist: Boolean? = false,
@@ -708,6 +710,27 @@ fun PlaylistMenu(
                                     }
                                     context.startActivity(Intent.createChooser(intent, null))
                                     onDismiss()
+                                }
+                            )
+                        )
+                        add(
+                            Material3MenuItemData(
+                                title = { Text(text = "Premium Share") },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_instagram_new),
+                                        contentDescription = null,
+                                        tint = androidx.compose.ui.graphics.Color(0xFFE4405F)
+                                    )
+                                },
+                                onClick = {
+                                    onDismiss()
+                                    val encodedTitle = java.net.URLEncoder.encode(playlist.playlist.name, "UTF-8")
+                                    val encodedArtist = java.net.URLEncoder.encode("Playlist", "UTF-8")
+                                    val encodedThumb = java.net.URLEncoder.encode(playlist.thumbnails.getOrNull(0) ?: "", "UTF-8")
+                                    val encodedShare = java.net.URLEncoder.encode(shareLink, "UTF-8")
+                                    
+                                    navController.navigate("story_share/${playlist.id}/$encodedTitle/$encodedArtist/false?thumbnailUrl=$encodedThumb&shareUrl=$encodedShare")
                                 }
                             )
                         )

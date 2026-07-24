@@ -309,6 +309,7 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.APPLE_MUSIC -> stringResource(R.string.apple_music)
                     PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
                     PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                    PlayerBackgroundStyle.COSMIC_DUST -> "Cosmic Dust"
                 }
             }
         )
@@ -806,6 +807,7 @@ fun AppearanceSettings(
                                 PlayerBackgroundStyle.APPLE_MUSIC -> stringResource(R.string.apple_music)
                                 PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
                                 PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                                PlayerBackgroundStyle.COSMIC_DUST -> "Cosmic Dust"
                             }
                         )
                     },

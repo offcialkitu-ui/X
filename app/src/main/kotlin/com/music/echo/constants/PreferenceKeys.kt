@@ -1,5 +1,4 @@
 
-
 package iad1tya.echo.music.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -21,7 +20,9 @@ val SpotifyAccountAvatarUrlKey = stringPreferencesKey("spotify_account_avatar_ur
 val SpotifyAccessTokenKey = stringPreferencesKey("spotify_access_token")
 val SpotifyAccessTokenExpiresAtKey = longPreferencesKey("spotify_access_token_expires_at")
 val EnableDynamicIconKey = booleanPreferencesKey("enableDynamicIcon")
+val EnableLegacyIconKey = booleanPreferencesKey("enableLegacyIcon")
 val EnableHighRefreshRateKey = booleanPreferencesKey("enableHighRefreshRate")
+val EnableHapticsKey = booleanPreferencesKey("enableHaptics")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 val SelectedThemeColorKey = intPreferencesKey("selectedThemeColor")
 val DarkModeKey = stringPreferencesKey("darkMode")
@@ -80,11 +81,10 @@ val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableSimpMusicKey = booleanPreferencesKey("enableSimpMusic")
 val EnableYouLyPlusKey = booleanPreferencesKey("enableYouLyPlus")
 val EnablePaxsenixKey = booleanPreferencesKey("enablePaxsenix")
-val EchoBrainEnabledKey = booleanPreferencesKey("echo_brain_enabled")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val SponsorBlockEnabledKey = booleanPreferencesKey("sponsor_block_enabled")
 val HideVideoSongsKey = booleanPreferencesKey("hideVideoSongs")
-val HideYoutubeShortsKey = booleanPreferencesKey("hideVideoSongs")
+val HideYoutubeShortsKey = booleanPreferencesKey("hideYoutubeShorts")
 val ShowArtistDescriptionKey = booleanPreferencesKey("showArtistDescription")
 val ShowArtistSubscriberCountKey = booleanPreferencesKey("showArtistSubscriberCount")
 val ShowMonthlyListenersKey = booleanPreferencesKey("showMonthlyListeners")
@@ -106,16 +106,16 @@ const val LOSSLESS_ENABLED = true
 
 enum class AudioQuality {
     OPUS,
-    SAAVN,
     LOSSLESS,
+    SAAVN,
 }
 
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 
 enum class DownloadQuality {
     YOUTUBE,
-    SAAVN,
     LOSSLESS,
+    SAAVN,
 }
 
 val AudioOffload = booleanPreferencesKey("enableOffload")
@@ -124,6 +124,7 @@ val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val PersistentShuffleAcrossQueuesKey = booleanPreferencesKey("persistentShuffleAcrossQueues")
 val RememberShuffleAndRepeatKey = booleanPreferencesKey("rememberShuffleAndRepeat")
 val ShuffleModeKey = booleanPreferencesKey("shuffleMode")
+val DownloadOnlyOnWifiKey = booleanPreferencesKey("downloadOnlyOnWifi")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val SkipSilenceInstantKey = booleanPreferencesKey("skipSilenceInstant")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
@@ -138,6 +139,8 @@ val PreventDuplicateTracksInQueueKey = booleanPreferencesKey("preventDuplicateTr
 val CrossfadeEnabledKey = booleanPreferencesKey("crossfadeEnabled")
 val CrossfadeDurationKey = floatPreferencesKey("crossfadeDuration")
 val CrossfadeGaplessKey = booleanPreferencesKey("crossfadeGapless")
+val AutomixCrossfadeKey = booleanPreferencesKey("automixCrossfade")
+val AutomixDebugOverlayKey = booleanPreferencesKey("automixDebugOverlay")
 
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
@@ -246,6 +249,10 @@ val LastAlbumSyncKey = longPreferencesKey("last_album_sync")
 val LastArtistSyncKey = longPreferencesKey("last_artist_sync")
 val LastPlaylistSyncKey = longPreferencesKey("last_playlist_sync")
 val LastFullSyncKey = longPreferencesKey("last_full_sync")
+val LastLosslessSyncKey = longPreferencesKey("lastLosslessSync")
+val LosslessGithubTokenKey = stringPreferencesKey("losslessGithubToken")
+val LosslessGithubUsernameKey = stringPreferencesKey("losslessGithubUsername")
+val LosslessGithubAvatarKey = stringPreferencesKey("losslessGithubAvatar")
 
 
 const val SYNC_COOLDOWN = 30 * 60L
@@ -437,6 +444,7 @@ enum class PlayerBackgroundStyle {
     APPLE_MUSIC,
     LIVE_MESH,
     LIQUID_GLASS,
+    COSMIC_DUST,
 }
 
 val TopSize = stringPreferencesKey("topSize")
@@ -766,8 +774,6 @@ val SuggestionRegionSlugToName =
 
 val SpatialAudioEnabledKey = booleanPreferencesKey("spatial_audio_enabled")
 val SpatialAudioStrengthKey = floatPreferencesKey("spatial_audio_strength")
-val PureLosslessKey = booleanPreferencesKey("pure_lossless_enabled")
-val CrossfeedEnabledKey = booleanPreferencesKey("crossfeed_enabled")
 val BassBoostKey = floatPreferencesKey("bass_boost")
 val VirtualizerKey = floatPreferencesKey("virtualizer")
 val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
@@ -779,26 +785,40 @@ val YouTubeSubtitleLyricsEnabledKey = booleanPreferencesKey("youtube_subtitle_ly
 val PreloadNextSongEnabledKey = booleanPreferencesKey("preload_next_song_enabled")
 val PreloadNextSongLimitKey = intPreferencesKey("preload_next_song_limit")
 val PreloadLyricsEnabledKey = booleanPreferencesKey("preload_lyrics_enabled")
+
+val PureLosslessKey = booleanPreferencesKey("pureLossless")
+val CipherLastUpdatedKey = longPreferencesKey("CipherLastUpdatedKey")
+val CipherManualUpdate1Key = longPreferencesKey("CipherManualUpdate1Key")
+val CipherManualUpdate2Key = longPreferencesKey("CipherManualUpdate2Key")
+val CipherManualUpdate3Key = longPreferencesKey("CipherManualUpdate3Key")
+val LiquidGlassEnabledKey = booleanPreferencesKey("liquidGlassEnabled")
+val LiquidGlassGlobalEnabledKey = LiquidGlassEnabledKey
+val LiquidGlassTextColorKey = intPreferencesKey("liquidGlassTextColor")
+val LiquidGlassSurfaceTintKey = intPreferencesKey("liquidGlassSurfaceTint")
+val LiquidGlassSurfaceTintColorKey = LiquidGlassSurfaceTintKey
+val LiquidGlassSurfaceOpacityKey = floatPreferencesKey("liquidGlassSurfaceOpacity")
+val LiquidGlassVibrancyKey = floatPreferencesKey("liquidGlassVibrancy")
+val LiquidGlassBlurRadiusKey = floatPreferencesKey("liquidGlassBlurRadius")
+val LiquidGlassRefractionHeightKey = floatPreferencesKey("liquidGlassRefractionHeight")
+val LiquidGlassLensHeightKey = LiquidGlassRefractionHeightKey
+val LiquidGlassRefractionAmountKey = floatPreferencesKey("liquidGlassRefractionAmount")
+val LiquidGlassLensAmountKey = LiquidGlassRefractionAmountKey
+val LiquidGlassChromaticAberrationKey = booleanPreferencesKey("liquidGlassChromaticAberration")
+val LiquidGlassDepthEffectKey = booleanPreferencesKey("liquidGlassDepthEffect")
+val LiquidGlassPlayerEnabledKey = booleanPreferencesKey("liquidGlassPlayerEnabled")
+val LiquidGlassMiniPlayerEnabledKey = booleanPreferencesKey("liquidGlassMiniPlayerEnabled")
+val LiquidGlassNavBarEnabledKey = booleanPreferencesKey("liquidGlassNavBarEnabled")
+val FloatingNavBarKey = booleanPreferencesKey("floatingNavBar")
+val UseFloatingNavBarKey = booleanPreferencesKey("useFloatingNavBar")
+
 val PurpleThemeKey = booleanPreferencesKey("purple_theme_enabled")
 val PartyModeKey = booleanPreferencesKey("party_mode_enabled")
 val GlassmorphismModeKey = booleanPreferencesKey("glassmorphism_mode_enabled")
-val LiquidGlassEnabledKey = booleanPreferencesKey("liquid_glass_enabled")
-val FloatingNavBarKey = booleanPreferencesKey("floating_nav_bar")
-val LiquidGlassVibrancyKey = floatPreferencesKey("liquid_glass_vibrancy")
-val LiquidGlassBlurRadiusKey = floatPreferencesKey("liquid_glass_blur_radius")
-val LiquidGlassRefractionHeightKey = floatPreferencesKey("liquid_glass_refraction_height")
-val LiquidGlassRefractionAmountKey = floatPreferencesKey("liquid_glass_refraction_amount")
-val LiquidGlassChromaticAberrationKey = booleanPreferencesKey("liquid_glass_chromatic_aberration")
-val LiquidGlassDepthEffectKey = booleanPreferencesKey("liquid_glass_depth_effect")
-val LiquidGlassSurfaceTintKey = intPreferencesKey("liquid_glass_surface_tint")
-val LiquidGlassSurfaceOpacityKey = floatPreferencesKey("liquid_glass_surface_opacity")
-val LiquidGlassTextColorKey = intPreferencesKey("liquid_glass_text_color")
-val LiquidGlassPlayerEnabledKey = booleanPreferencesKey("liquid_glass_player_enabled")
-val LiquidGlassMiniPlayerEnabledKey = booleanPreferencesKey("liquid_glass_mini_player_enabled")
-val LiquidGlassNavBarEnabledKey = booleanPreferencesKey("liquid_glass_nav_bar_enabled")
 val SolarDynamicModeKey = booleanPreferencesKey("solar_dynamic_mode_enabled")
 val BatteryProModeKey = booleanPreferencesKey("battery_pro_mode_enabled")
 val LockScreenOverlayKey = booleanPreferencesKey("lock_screen_overlay_enabled")
 val DynamicCapsuleKey = booleanPreferencesKey("dynamic_capsule_enabled")
-val DownloadOnlyOnWifiKey = booleanPreferencesKey("download_only_on_wifi")
+val EchoBrainEnabledKey = booleanPreferencesKey("echo_brain_enabled")
 val SleepTimerKey = intPreferencesKey("sleep_timer_minutes")
+val AutoTranslateKey = booleanPreferencesKey("autoTranslate")
+val AiRecommendationsKey = booleanPreferencesKey("aiRecommendations")

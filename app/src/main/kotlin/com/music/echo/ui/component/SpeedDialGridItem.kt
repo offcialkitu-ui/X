@@ -45,16 +45,20 @@ fun SpeedDialGridItem(
 ) {
     val partyMode by rememberPreference(iad1tya.echo.music.constants.PartyModeKey, defaultValue = false)
     
-    val infiniteTransition = rememberInfiniteTransition(label = "party_pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
+    val pulseAlpha = if (partyMode && isActive) {
+        val infiniteTransition = rememberInfiniteTransition(label = "party_pulse")
+        infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse"
+        )
+    } else {
+        null
+    }
 
     Box(
         modifier = modifier
@@ -62,11 +66,15 @@ fun SpeedDialGridItem(
             .aspectRatio(1f) 
             .clip(RoundedCornerShape(ThumbnailCornerRadius))
             .then(
-                if (partyMode && isActive) {
-                    Modifier.border(
-                        BorderStroke(2.dp, Color(0xFF00FFFF).copy(alpha = pulseAlpha)),
-                        RoundedCornerShape(ThumbnailCornerRadius)
-                    )
+                if (partyMode && isActive && pulseAlpha != null) {
+                    Modifier.drawWithContent {
+                        drawContent()
+                        drawRoundRect(
+                            color = Color(0xFF00FFFF).copy(alpha = pulseAlpha.value),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(ThumbnailCornerRadius.toPx())
+                        )
+                    }
                 } else Modifier
             )
     ) {
