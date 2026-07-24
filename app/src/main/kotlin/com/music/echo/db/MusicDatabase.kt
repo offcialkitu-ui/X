@@ -22,6 +22,7 @@ import iad1tya.echo.music.db.daos.SpeedDialDao
 import iad1tya.echo.music.db.entities.AlbumArtistMap
 import iad1tya.echo.music.db.entities.AlbumEntity
 import iad1tya.echo.music.db.entities.ArtistEntity
+import iad1tya.echo.music.db.entities.BeatInfoEntity
 import iad1tya.echo.music.db.entities.BrainActivityLogEntity
 import iad1tya.echo.music.db.entities.Event
 import iad1tya.echo.music.db.entities.FormatEntity
@@ -113,14 +114,15 @@ class MusicDatabase(
         SpeedDialItem::class,
         BrainActivityLogEntity::class,
         PlayEventEntity::class,
-        TasteProfileEntity::class
+        TasteProfileEntity::class,
+        BeatInfoEntity::class
     ],
     views = [
         SortedSongArtistMap::class,
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 40,
+    version = 41,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -158,6 +160,7 @@ class MusicDatabase(
         AutoMigration(from = 35, to = 36),
         AutoMigration(from = 36, to = 37, spec = Migration36To37Spec::class),
         AutoMigration(from = 39, to = 40),
+        AutoMigration(from = 40, to = 41),
     ],
 )
 @TypeConverters(Converters::class)

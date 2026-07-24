@@ -5,6 +5,7 @@ package iad1tya.echo.music.db.entities
 import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.music.innertube.YouTube
 import kotlinx.coroutines.CoroutineScope

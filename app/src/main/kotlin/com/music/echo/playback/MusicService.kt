@@ -161,6 +161,7 @@ import iad1tya.echo.music.models.PersistPlayerState
 import iad1tya.echo.music.models.PersistQueue
 import iad1tya.echo.music.models.toMediaMetadata
 import iad1tya.echo.music.playback.audio.SilenceDetectorAudioProcessor
+import iad1tya.echo.music.eq.audio.AutomixDuckAudioProcessor
 import iad1tya.echo.music.playback.queues.EmptyQueue
 import iad1tya.echo.music.playback.queues.Queue
 import iad1tya.echo.music.playback.queues.YouTubeQueue
@@ -380,6 +381,7 @@ class MusicService :
     val playerFlow = _playerFlow.asStateFlow()
 
     private val playerSilenceProcessors = HashMap<Player, SilenceDetectorAudioProcessor>()
+    private val playerDuckProcessors = HashMap<Player, AutomixDuckAudioProcessor>()
 
 
     private val instantSilenceSkipEnabled = MutableStateFlow(false)
@@ -1100,9 +1102,11 @@ class MusicService :
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
         silenceProcessor.instantModeEnabled = initialSkipSilence && initialInstantSkip
 
+        val duckProcessor = AutomixDuckAudioProcessor()
+
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
-            .setRenderersFactory(createRenderersFactory(eqProcessor, silenceProcessor))
+            .setRenderersFactory(createRenderersFactory(eqProcessor, silenceProcessor, duckProcessor))
             .setLoadControl(
                 DefaultLoadControl.Builder()
                     .setBufferDurationsMs(50_000, 50_000, 750, 2_000)
@@ -1123,6 +1127,7 @@ class MusicService :
             .build()
 
         playerSilenceProcessors[player] = silenceProcessor
+        playerDuckProcessors[player] = duckProcessor
 
         player.apply {
             setOffloadEnabled(if (initialCrossfade) false else initialOffload)
@@ -1367,6 +1372,7 @@ class MusicService :
 
     private suspend fun recoverSong(
         mediaId: String,
+        isOfflinePlayback: Boolean = false,
         playbackData: YTPlayerUtils.PlaybackData? = null
     ) {
         val song = database.song(mediaId).first()
@@ -1375,7 +1381,7 @@ class MusicService :
         } ?: return
         val duration = song?.song?.duration?.takeIf { it != -1 }
             ?: mediaMetadata.duration.takeIf { it != -1 }
-            ?: (playbackData?.videoDetails ?: YTPlayerUtils.playerResponseForMetadata(mediaId)
+            ?: if (isOfflinePlayback) -1 else (playbackData?.videoDetails ?: YTPlayerUtils.playerResponseForMetadata(mediaId)
                 .getOrNull()?.videoDetails)?.lengthSeconds?.toInt()
             ?: -1
         database.query {
@@ -1394,7 +1400,7 @@ class MusicService :
                 }
             }
         }
-        if (!database.hasRelatedSongs(mediaId)) {
+        if (!isOfflinePlayback && !database.hasRelatedSongs(mediaId)) {
             val relatedEndpoint =
                 YouTube.next(WatchEndpoint(videoId = mediaId)).getOrNull()?.relatedEndpoint
                     ?: return
@@ -3007,7 +3013,7 @@ class MusicService :
 
             if (!shouldBypassCache) {
                 if (isFullyDownloaded) {
-                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    scope.launch(Dispatchers.IO) { recoverSong(mediaId, isOfflinePlayback = true) }
                     return@Factory dataSpec
                 }
 
@@ -3018,7 +3024,7 @@ class MusicService :
                     )
                 ) {
                     songUrlCache["${mediaId}_${lockedQuality.name}"]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                        scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                        scope.launch(Dispatchers.IO) { recoverSong(mediaId, isOfflinePlayback = true) }
                         return@Factory dataSpec.withUri(it.first.toUri())
                     }
                     // Fall through to fetch real URL since it's only partially downloaded
@@ -3026,7 +3032,7 @@ class MusicService :
 
                 if (playerCache.isCached(mediaId, dataSpec.position, CHUNK_LENGTH)) {
                     songUrlCache["${mediaId}_${lockedQuality.name}"]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                        scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                        scope.launch(Dispatchers.IO) { recoverSong(mediaId, isOfflinePlayback = true) }
                         return@Factory dataSpec.withUri(it.first.toUri())
                     }
                     Timber.tag(TAG).w("Ghost cache entry for $mediaId, re-fetching")
@@ -3034,7 +3040,7 @@ class MusicService :
                 }
 
                 songUrlCache["${mediaId}_${lockedQuality.name}"]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                        scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                        scope.launch(Dispatchers.IO) { recoverSong(mediaId, isOfflinePlayback = true) }
                         return@Factory dataSpec.withUri(it.first.toUri())
                 }
             } else {
@@ -3138,7 +3144,7 @@ class MusicService :
                         )
                     )
                 }
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
+                scope.launch(Dispatchers.IO) { recoverSong(mediaId, false, nonNullPlayback) }
 
                 
                 if (bypassCacheForQualityChange.remove(mediaId)) {
@@ -3163,7 +3169,8 @@ class MusicService :
 
     private fun createRenderersFactory(
         eqProcessor: CustomEqualizerAudioProcessor,
-        silenceProcessor: SilenceDetectorAudioProcessor
+        silenceProcessor: SilenceDetectorAudioProcessor,
+        duckProcessor: AutomixDuckAudioProcessor
     ) =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
@@ -3179,6 +3186,7 @@ class MusicService :
                         
                         arrayOf(
                             eqProcessor,
+                            duckProcessor,
                             silenceProcessor,
                         ),
                         SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),
@@ -3326,6 +3334,7 @@ class MusicService :
         player.removeListener(this)
         player.removeListener(sleepTimer)
         playerSilenceProcessors.remove(player)
+        playerDuckProcessors.remove(player)
         
         
         

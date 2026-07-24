@@ -129,12 +129,12 @@ object YTPlayerUtils {
         var hasShownOpusToast = false
 
         suspend fun tryOpus(): Result<PlaybackData> {
-            val firstAttempt = resolvePlaybackData(videoId, playlistId, audioQuality, connectivityManager)
+            val firstAttempt = resolvePlaybackData(videoId, playlistId, audioQuality, connectivityManager, context, knownArtist, knownTitle)
             if (firstAttempt.isFailure && YouTube.cookie == null) {
                 Timber.tag(TAG).w("Playback failed for guest. Rotating session and retrying...")
                 PlaybackLogManager.log(PlaybackLogLevel.BOT, "Playback failed for guest", "Triggering bot detection mitigation (rotating guest session)")
                 BotDetectionMitigator.rotateGuestSession()
-                val retryResult = resolvePlaybackData(videoId, playlistId, audioQuality, connectivityManager)
+                val retryResult = resolvePlaybackData(videoId, playlistId, audioQuality, connectivityManager, context, knownArtist, knownTitle)
                 retryResult.onSuccess { BotDetectionMitigator.notifyPlaybackSuccess() }
                 return retryResult
             }
@@ -413,6 +413,9 @@ object YTPlayerUtils {
         playlistId: String? = null,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
+        context: android.content.Context? = null,
+        knownArtist: String? = null,
+        knownTitle: String? = null
     ): Result<PlaybackData> = runCatching {
         Timber.tag(logTag).d("Fetching player response for videoId: $videoId, playlistId: $playlistId")
         PlaybackLogManager.log(PlaybackLogLevel.INFO, "Resolving playback data", "Video: $videoId")
@@ -484,11 +487,14 @@ object YTPlayerUtils {
         
         
         val mainStatus = mainPlayerResponse.playabilityStatus.status
+        val mainReason = mainPlayerResponse.playabilityStatus.reason?.lowercase() ?: ""
         val isAgeRestrictedFromResponse = mainStatus in listOf(
             "AGE_CHECK_REQUIRED",
             "AGE_VERIFICATION_REQUIRED",
-            "CONTENT_CHECK_REQUIRED"
-        )
+            "CONTENT_CHECK_REQUIRED",
+            "UNPLAYABLE",
+            "LOGIN_REQUIRED"
+        ) || (mainStatus == "LOGIN_REQUIRED" && mainReason.contains("age"))
         wasOriginallyAgeRestricted = isAgeRestrictedFromResponse
 
         if (isAgeRestrictedFromResponse && isLoggedIn) {
@@ -521,15 +527,70 @@ object YTPlayerUtils {
 
         
         val currentStatus = mainPlayerResponse.playabilityStatus.status
+        val currentReason = mainPlayerResponse.playabilityStatus.reason?.lowercase() ?: ""
         var isAgeRestricted = currentStatus in listOf(
             "AGE_CHECK_REQUIRED",
             "AGE_VERIFICATION_REQUIRED",
-            "CONTENT_CHECK_REQUIRED"
-        )
+            "CONTENT_CHECK_REQUIRED",
+            "UNPLAYABLE",
+            "LOGIN_REQUIRED"
+        ) || (currentStatus == "LOGIN_REQUIRED" && currentReason.contains("age"))
 
         if (isAgeRestricted) {
             Timber.tag(logTag).d("Content is still age-restricted (status: $currentStatus), will try fallback clients")
             Log.i(TAG, "Age-restricted content detected: videoId=$videoId, status=$currentStatus")
+
+            if (context != null) {
+                try {
+                    val rawTitle = knownTitle ?: videoDetails?.title ?: ""
+                    val rawArtist = knownArtist ?: videoDetails?.author ?: ""
+                    
+                    val cleanTitle = rawTitle.replace(Regex("\\(.*?\\)|\\[.*?]"), "").trim()
+                    val cleanArtist = rawArtist.replace(" - Topic", "").trim()
+                    
+                    Timber.tag(logTag).d("Trying JioSaavnFallback for age-restricted content: \$cleanTitle by \$cleanArtist")
+                    val fallbackUrl = JioSaavnFallback.resolveAgeRestrictedSong(context, cleanTitle, cleanArtist)
+                    
+                    if (fallbackUrl != null) {
+                        Timber.tag(logTag).d("JioSaavnFallback succeeded!")
+                        val fallbackFormat = PlayerResponse.StreamingData.Format(
+                            itag = 0,
+                            url = fallbackUrl,
+                            mimeType = "audio/mp4",
+                            bitrate = 320000,
+                            width = null,
+                            height = null,
+                            contentLength = null,
+                            quality = "high",
+                            fps = null,
+                            qualityLabel = null,
+                            averageBitrate = null,
+                            audioQuality = "AUDIO_QUALITY_HIGH",
+                            approxDurationMs = null,
+                            audioSampleRate = null,
+                            audioChannels = null,
+                            loudnessDb = null,
+                            lastModified = null,
+                            signatureCipher = null,
+                            cipher = null,
+                            audioTrack = null
+                        )
+                        return@runCatching PlaybackData(
+                            audioConfig = audioConfig,
+                            videoDetails = videoDetails,
+                            playbackTracking = playbackTracking,
+                            format = fallbackFormat,
+                            streamUrl = fallbackUrl,
+                            streamExpiresInSeconds = 3600,
+                            isSaavnStream = true
+                        )
+                    } else {
+                        Timber.tag(logTag).d("JioSaavnFallback returned null, proceeding to fallback clients")
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(logTag).e(e, "Error during JioSaavnFallback")
+                }
+            }
         }
 
         

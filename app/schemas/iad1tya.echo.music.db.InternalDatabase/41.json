@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 40,
-    "identityHash": "a5602fdbfabe375ebf68dbad8e6fa4cd",
+    "version": 41,
+    "identityHash": "45131edf1cf4712c03991f1f7c9ef29f",
     "entities": [
       {
         "tableName": "song",
@@ -1490,6 +1490,68 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "beat_info",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `bpm` REAL NOT NULL, `firstBeatOffsetMs` INTEGER NOT NULL, `confidence` REAL NOT NULL, `analyzedAt` INTEGER NOT NULL, `mixInPointMs` INTEGER, `mixOutPointMs` INTEGER, `keyPitchClass` INTEGER, `keyIsMinor` INTEGER, PRIMARY KEY(`songId`))",
+        "fields": [
+          {
+            "fieldPath": "songId",
+            "columnName": "songId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bpm",
+            "columnName": "bpm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstBeatOffsetMs",
+            "columnName": "firstBeatOffsetMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "analyzedAt",
+            "columnName": "analyzedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mixInPointMs",
+            "columnName": "mixInPointMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mixOutPointMs",
+            "columnName": "mixOutPointMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "keyPitchClass",
+            "columnName": "keyPitchClass",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "keyIsMinor",
+            "columnName": "keyIsMinor",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "songId"
+          ]
+        }
       }
     ],
     "views": [
@@ -1508,7 +1570,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a5602fdbfabe375ebf68dbad8e6fa4cd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '45131edf1cf4712c03991f1f7c9ef29f')"
     ]
   }
 }
