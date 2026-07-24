@@ -40,18 +40,68 @@ class UpdateViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
     val uiState: StateFlow<UpdateUiState> = _uiState.asStateFlow()
 
-    fun checkForUpdates(silent: Boolean = false) {
+    private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
+    val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
+
+    fun checkForUpdates(context: Context? = null, silent: Boolean = false) {
         viewModelScope.launch {
             if (!silent) _uiState.value = UpdateUiState.Checking
             repository.fetchUpdateInfo(force = true).onSuccess { info ->
                 if (repository.isUpdateAvailable(info)) {
                     _uiState.value = UpdateUiState.Available(info)
+                    context?.let { ctx ->
+                        checkDownloadedApk(ctx, info.versionName)
+                        observeDownloadProgress(ctx, info.versionName)
+                    }
                 } else {
                     _uiState.value = UpdateUiState.UpToDate(BuildConfig.VERSION_NAME)
                 }
             }.onFailure { error ->
                 if (!silent) _uiState.value = UpdateUiState.Error(error.message ?: "Network error. Check connection.")
             }
+        }
+    }
+
+    fun checkDownloadedApk(context: Context, versionName: String) {
+        val downloadedFile = File(getDownloadedApksDir(context), "MelodyX_$versionName.apk")
+        if (downloadedFile.exists() && downloadedFile.length() > 0) {
+            _downloadState.value = DownloadState.Completed(downloadedFile.absolutePath)
+        }
+    }
+
+    fun observeDownloadProgress(context: Context, versionName: String) {
+        viewModelScope.launch {
+            val downloadedFile = File(getDownloadedApksDir(context), "MelodyX_$versionName.apk")
+            if (downloadedFile.exists() && downloadedFile.length() > 0) {
+                _downloadState.value = DownloadState.Completed(downloadedFile.absolutePath)
+            }
+
+            WorkManager.getInstance(context)
+                .getWorkInfosForUniqueWorkFlow("update_download")
+                .collect { workInfoList ->
+                    val workInfo = workInfoList.firstOrNull() ?: return@collect
+                    when (workInfo.state) {
+                        WorkInfo.State.RUNNING -> {
+                            val progress = workInfo.progress.getFloat("progress", 0f)
+                            val speed = workInfo.progress.getString("speed") ?: ""
+                            val eta = workInfo.progress.getString("eta") ?: ""
+                            val downloaded = workInfo.progress.getLong("downloaded", 0L)
+                            val total = workInfo.progress.getLong("total", 0L)
+                            _downloadState.value = DownloadState.Downloading(progress, speed, eta, downloaded, total)
+                        }
+                        WorkInfo.State.SUCCEEDED -> {
+                            val filePath = workInfo.outputData.getString("file_path") ?: downloadedFile.absolutePath
+                            _downloadState.value = DownloadState.Completed(filePath)
+                        }
+                        WorkInfo.State.FAILED -> {
+                            _downloadState.value = DownloadState.Failed("Download failed")
+                        }
+                        WorkInfo.State.CANCELLED -> {
+                            _downloadState.value = DownloadState.Idle
+                        }
+                        else -> {}
+                    }
+                }
         }
     }
 
@@ -77,6 +127,8 @@ class UpdateViewModel @Inject constructor(
             ExistingWorkPolicy.REPLACE,
             downloadRequest
         )
+
+        observeDownloadProgress(context, info.versionName)
     }
 
     fun installApk(context: Context, filePath: String) {
@@ -116,3 +168,4 @@ class UpdateViewModel @Inject constructor(
         }
     }
 }
+

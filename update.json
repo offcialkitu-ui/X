@@ -1,21 +1,29 @@
 {
-  "versionCode": 630,
-  "versionName": "6.3.0",
-  "releaseDate": "2026-07-15",
-  "apkSize": "108 MB",
-  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.3.0/MELODY_X_v6.3.0.apk",
+  "versionCode": 632,
+  "versionName": "6.3.2",
+  "releaseDate": "2026-06-09",
+  "apkSize": "110 MB",
+  "apkUrl": "https://github.com/offcialkitu-ui/X/releases/download/v6.3.2/MELODY_X_v6.3.2.apk",
   "forceUpdate": false,
   "changelog": {
     "features": [
-      "New Minimalist Settings Layout",
-      "Optimized Audiophile X-Engine controls"
+      "Redesigned Update Screen UI",
+      "Live Download Progress Tracking",
+      "In-App Update Confirmation Dialog",
+      "JioSaavn Fallback for Age-Restricted Content",
+      "Turbo Downloads (5MB Chunking)",
+      "New Cosmic Dust Player Background",
+      "Premium Instagram Story Share"
     ],
     "improvements": [
-      "Removed donation prompts and clutter",
-      "Fixed UI spacing in Player Settings"
+      "Auto-detection for downloaded APKs",
+      "Offline Data Saver (Minimized network usage for downloads)",
+      "Beat-Synced AutoMix transitions",
+      "Liquid Glass adaptive text contrast"
     ],
     "bugFixes": [
-      "Resolved background padding issues on large screens"
+      "Fixed resource conflicts in strings.xml",
+      "Improved build stability for FOSS variants"
     ]
   }
 }
